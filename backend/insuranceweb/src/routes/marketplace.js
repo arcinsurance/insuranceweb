@@ -34,7 +34,11 @@ router.post('/plans/search', async (req, res) => {
 // Proxy to Marketplace API: Counties
 router.get('/counties', async (req, res) => {
   try {
-    const url = `${MARKETPLACE_BASE}/counties?apikey=${MARKETPLACE_API_KEY}`;
+    const { zipcode } = req.query;
+    let url = `${MARKETPLACE_BASE}/counties?apikey=${MARKETPLACE_API_KEY}`;
+    if (zipcode) {
+      url += `&zipcode=${zipcode}`;
+    }
     const response = await fetch(url);
     const data = await response.json();
     res.status(response.status).json(data);
