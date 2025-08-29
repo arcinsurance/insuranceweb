@@ -1,38 +1,3 @@
-// Log temporal para depuración de API key
-router.post('/plans/search', async (req, res) => {
-  console.log('MARKETPLACE_API_KEY usado:', process.env.MARKETPLACE_API_KEY);
-  try {
-    const url = new URL(`${process.env.MARKETPLACE_BASE}/plans/search`);
-    url.searchParams.append('apikey', process.env.MARKETPLACE_API_KEY);
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body)
-    });
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: 'Error searching plans' });
-  }
-});
-// Buscar planes con POST (payload completo)
-router.post('/plans/search', async (req, res) => {
-  try {
-    const url = new URL(`${process.env.MARKETPLACE_BASE}/plans/search`);
-    url.searchParams.append('apikey', process.env.MARKETPLACE_API_KEY);
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body)
-    });
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: 'Error searching plans' });
-  }
-});
-
-
 import express from 'express';
 import fetch from 'node-fetch';
 
