@@ -24,6 +24,7 @@ export const db = mysql.createPool({
 import leadRoutes from './routes/leadRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
+import marketplaceRoutes from './routes/marketplaceRoutes.js';
 
 app.get('/', (req, res) => {
   res.send('InsuranceWeb Backend API running');
@@ -32,6 +33,7 @@ app.get('/', (req, res) => {
 app.use('/api/leads', leadRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/contacts', contactRoutes);
+app.use('/api/marketplace', marketplaceRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
