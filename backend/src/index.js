@@ -26,6 +26,7 @@ import userRoutes from './routes/userRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import marketplaceRoutes from './routes/marketplaceRoutes.js';
 import marketplaceRouter from './routes/marketplace.js';
+import contentRouter from './routes/content.js';
 
 app.get('/', (req, res) => {
   res.send('InsuranceWeb Backend API running');
@@ -36,6 +37,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/contacts', contactRoutes);
 // app.use('/api/marketplace', marketplaceRoutes); // legacy
 app.use('/api/marketplace', marketplaceRouter); // nuevo router seguro
+app.use('/api/content', contentRouter); // endpoints de contenido cacheado
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
