@@ -25,7 +25,7 @@ import leadRoutes from './routes/leadRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import marketplaceRoutes from './routes/marketplaceRoutes.js';
-import marketplaceRouter from './routes/marketplace.js';
+const marketplaceRouter = require('./routes/marketplace.js');
 
 app.get('/', (req, res) => {
   res.send('InsuranceWeb Backend API running');
