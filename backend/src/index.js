@@ -34,7 +34,7 @@ app.get('/', (req, res) => {
 app.use('/api/leads', leadRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/contacts', contactRoutes);
-app.use('/api/marketplace', marketplaceRoutes); // legacy
+// app.use('/api/marketplace', marketplaceRoutes); // legacy
 app.use('/api/marketplace', marketplaceRouter); // nuevo router seguro
 
 const PORT = process.env.PORT || 4000;
