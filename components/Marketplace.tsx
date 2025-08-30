@@ -17,16 +17,37 @@ const Marketplace = () => {
     setError('');
     setPlans(null);
     try {
-  const res = await fetch('https://insuranceweb.onrender.com/api/marketplace/plans', {
+      // 1. Obtener countyfips según zipcode
+      const countyRes = await fetch(`https://insuranceweb.onrender.com/api/marketplace/counties?zipcode=${zipcode}`);
+      const countyData = await countyRes.json();
+      if (!countyRes.ok || !Array.isArray(countyData) || !countyData[0]?.countyfips) {
+        throw new Error('No se pudo obtener el countyfips para el código postal ingresado');
+      }
+      const countyfips = countyData[0].countyfips;
+
+      // 2. Buscar planes usando el countyfips obtenido
+      const res = await fetch('https://insuranceweb.onrender.com/api/marketplace/plans/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          state,
-          year,
-          zipcode,
-          age,
-          income,
-          household
+          household: {
+            income: Number(income),
+            people: [
+              {
+                age: Number(age),
+                aptc_eligible: true, // Puedes ajustar según tu lógica
+                gender: "Female",   // Puedes hacer esto dinámico si tienes el dato
+                uses_tobacco: false  // Puedes hacer esto dinámico si tienes el dato
+              }
+            ]
+          },
+          market: "Individual",
+          place: {
+            countyfips,
+            state,
+            zipcode
+          },
+          year: Number(year)
         })
       });
       if (!res.ok) throw new Error('No se encontraron planes o hubo un error en la búsqueda');
