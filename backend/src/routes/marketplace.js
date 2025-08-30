@@ -1,3 +1,19 @@
+// Get counties by query param (zipcode)
+router.get('/counties', async (req, res) => {
+  const { zipcode } = req.query;
+  if (!zipcode) {
+    return res.status(400).json({ error: 'zipcode is required' });
+  }
+  try {
+    const url = new URL(`${process.env.MARKETPLACE_BASE}/counties/${zipcode}`);
+    url.searchParams.append('apikey', process.env.MARKETPLACE_API_KEY);
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching counties' });
+  }
+});
 import express from 'express';
 import fetch from 'node-fetch';
 
