@@ -1,3 +1,9 @@
+
+import express from 'express';
+import fetch from 'node-fetch';
+
+const router = express.Router();
+
 // Get counties by query param (zipcode)
 router.get('/counties', async (req, res) => {
   const { zipcode } = req.query;
@@ -14,10 +20,6 @@ router.get('/counties', async (req, res) => {
     res.status(500).json({ error: 'Error fetching counties' });
   }
 });
-import express from 'express';
-import fetch from 'node-fetch';
-
-const router = express.Router();
 
 // Healthcheck endpoint
 router.get('/health', (req, res) => {
