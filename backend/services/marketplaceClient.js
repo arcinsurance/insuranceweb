@@ -56,38 +56,53 @@ function isHealthcareBase() {
 function normalizeMarket(val) {
   if (!val) return undefined;
   const s = String(val).trim().toUpperCase();
-  if (["INDIVIDUAL", "IHP", "IND"].includes(s)) return "INDIVIDUAL";
-  if (["SHOP", "SMALL_GROUP", "SG"].includes(s)) return "SHOP";
-  return s; // fallback to uppercase provided value
+  // Map common aliases to API's TitleCase values per docs
+  if (["INDIVIDUAL", "IHP", "IND"].includes(s)) return "Individual";
+  if (["SHOP", "SMALL_GROUP", "SG"].includes(s)) return "Shop";
+  // Fallback: TitleCase the provided value
+  return s.charAt(0) + s.slice(1).toLowerCase();
 }
 
 function buildHealthcareSearchPayload(filters) {
   const f = filters || {};
-  const marketType = normalizeMarket(f.market || (f.market && f.market.type));
+  // market must be a string like "Individual" or "Shop"
+  const normalizedMarket = normalizeMarket(f.market || (f.market && f.market.type));
   const market = (process.env.MARKETPLACE_MARKET_FORMAT === 'object')
-    ? { type: marketType || 'INDIVIDUAL' }
-    : (marketType || 'INDIVIDUAL');
+    ? { type: normalizedMarket || 'Individual' }
+    : (normalizedMarket || 'Individual');
+
   const place = {
     state: (f.state || (f.place && (f.place.state || f.place.State)) || '').toString().toUpperCase(),
     zipcode: (f.zipcode || f.zip || (f.place && (f.place.zipcode || f.place.postalCode || f.place.zip)) || '').toString(),
     countyfips: (f.countyfips || f.countyFips || (f.place && (f.place.countyfips || f.place.countyFips)) || '').toString()
   };
+
+  // year is top-level per spec
+  const year = typeof f.year === 'number' ? f.year : Number(f.year);
+
+  // Build household.people from provided people or ages list
   const household = {
-    year: typeof f.year === 'number' ? f.year : Number(f.year),
     effective_date: f.effective_date || f.effectiveDate,
-    household_size: typeof f.household_size === 'number' ? f.household_size : (typeof f.householdSize === 'number' ? f.householdSize : Number(f.household_size || f.householdSize)),
-    ages: Array.isArray(f.ages) ? f.ages : (typeof f.ages === 'string' ? f.ages.split(',').map(s => Number(s.trim())).filter(n => Number.isFinite(n)) : undefined)
+    income: f.income !== undefined ? Number(f.income) : undefined
   };
-  // Derive household_size from ages if not set
-  if (!household.household_size && Array.isArray(household.ages)) {
-    household.household_size = household.ages.length;
+
+  // People array precedence: explicit people, else ages list
+  if (Array.isArray(f.people) && f.people.length) {
+    household.people = f.people;
+  } else if (Array.isArray(f.ages) || typeof f.ages === 'string') {
+    const ages = Array.isArray(f.ages) ? f.ages : f.ages.split(',').map(s => s.trim()).filter(Boolean);
+    const nums = ages.map(a => Number(a)).filter(n => Number.isFinite(n));
+    household.people = nums.map(age => ({ age }));
   }
+
   // Ensure effective_date in YYYY-MM-DD if provided as Date
   if (household.effective_date instanceof Date && !isNaN(household.effective_date)) {
     const d = household.effective_date; const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0');
     household.effective_date = `${d.getFullYear()}-${mm}-${dd}`;
   }
-  return { market, place, household };
+
+  const payload = { market, place, year, household };
+  return payload;
 }
 
 async function searchPlans(filters) {
@@ -182,7 +197,7 @@ async function searchPlans(filters) {
   throw new Error('Marketplace search failed with no attempts executed');
 }
 
-async function getPlan(planId) {
+async function getPlan(planId, year) {
   const client = buildClient();
   let path = process.env.MARKETPLACE_PLAN_DETAILS_PATH || '/plans/:id';
   path = path.replace(':id', encodeURIComponent(planId));
@@ -190,6 +205,7 @@ async function getPlan(planId) {
   const apiKey = (process.env.MARKETPLACE_API_KEY || '').trim();
   const params = {};
   if (isHealthcare && apiKey) params.api_key = apiKey;
+  if (year !== undefined) params.year = Number(year);
   const { data } = await client.get(path, { params });
   return data;
 }
