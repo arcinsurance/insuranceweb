@@ -1,1 +1,0 @@
-Archivo renombrado para evitar conflicto con Node.js. Puedes eliminarlo si no lo necesitas.
