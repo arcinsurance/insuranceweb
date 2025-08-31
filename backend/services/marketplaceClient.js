@@ -13,10 +13,13 @@ function buildClient() {
     headers['Authorization'] = `${scheme} ${process.env.MARKETPLACE_API_KEY}`;
   }
 
-  // Heuristic: if baseURL looks like healthcare.gov and no header provided, default to X-Api-Key
-  if (!process.env.MARKETPLACE_API_KEY_HEADER && process.env.MARKETPLACE_API_KEY && /healthcare\.gov/.test(baseURL || '')) {
+  // Heuristic: if baseURL looks like healthcare.gov, always set X-Api-Key
+  if (process.env.MARKETPLACE_API_KEY && /healthcare\.gov/.test(baseURL || '')) {
     headers['X-Api-Key'] = process.env.MARKETPLACE_API_KEY;
-    delete headers['Authorization'];
+    // Also include lowercase variant just in case some infra is strict (HTTP header names are case-insensitive, but play it safe)
+    headers['x-api-key'] = process.env.MARKETPLACE_API_KEY;
+    // Remove Authorization to avoid confusing upstream
+    if (headers['Authorization']) delete headers['Authorization'];
   }
 
   if (process.env.MARKETPLACE_EXTRA_HEADERS) {
@@ -26,6 +29,14 @@ function buildClient() {
     } catch (e) {
       console.warn('MARKETPLACE_EXTRA_HEADERS is not valid JSON; ignoring');
     }
+  }
+
+  // Log which headers are set (names only) for diagnostics
+  try {
+    const headerNames = Object.keys(headers || {});
+    console.log('[Marketplace] axios client built', { baseURL, headerNames, timeout });
+  } catch (_) {
+    // no-op
   }
 
   return axios.create({ baseURL, timeout, headers });
@@ -63,4 +74,38 @@ async function getPlan(planId) {
   return data;
 }
 
-module.exports = { searchPlans, getPlan };
+function getClientDebug() {
+  const baseURL = process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE || null;
+  const timeout = parseInt(process.env.MARKETPLACE_TIMEOUT_MS || '15000', 10);
+  const defaultMethod = /healthcare\.gov/.test((process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE || '')) ? 'GET' : 'POST';
+  const method = (process.env.MARKETPLACE_SEARCH_METHOD || defaultMethod).toUpperCase();
+  const searchPath = process.env.MARKETPLACE_SEARCH_PATH || '/plans/search';
+  // Build headers same way but only return names
+  const hdrs = {};
+  if (process.env.MARKETPLACE_API_KEY_HEADER) {
+    hdrs[process.env.MARKETPLACE_API_KEY_HEADER] = 'set';
+  } else if (process.env.MARKETPLACE_API_KEY) {
+    const scheme = process.env.MARKETPLACE_AUTH_SCHEME || 'Bearer';
+    hdrs['Authorization'] = `${scheme} ******`;
+  }
+  if (process.env.MARKETPLACE_API_KEY && /healthcare\.gov/.test(baseURL || '')) {
+    hdrs['X-Api-Key'] = 'set';
+    hdrs['x-api-key'] = 'set';
+    if (hdrs['Authorization']) delete hdrs['Authorization'];
+  }
+  if (process.env.MARKETPLACE_EXTRA_HEADERS) {
+    try {
+      const extra = JSON.parse(process.env.MARKETPLACE_EXTRA_HEADERS);
+      Object.keys(extra || {}).forEach(k => { hdrs[k] = 'set'; });
+    } catch (_) {}
+  }
+  return {
+    baseURL,
+    timeout,
+    method,
+    searchPath,
+    headerNames: Object.keys(hdrs)
+  };
+}
+
+module.exports = { searchPlans, getPlan, getClientDebug };
