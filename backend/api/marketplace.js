@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { searchPlans, getPlan, getClientDebug } = require('../services/marketplaceClient');
+const { searchPlans, getPlan, getClientDebug, getLastAttempt } = require('../services/marketplaceClient');
 
 function toInt(x) {
   if (x === undefined || x === null || x === '') return undefined;
@@ -108,7 +108,8 @@ router.get('/_debug', (req, res) => {
       apiKeyHeader: process.env.MARKETPLACE_API_KEY_HEADER || 'AUTO',
       hasApiKey: !!process.env.MARKETPLACE_API_KEY
   },
-  client: getClientDebug()
+  client: getClientDebug(),
+  lastAttempt: getLastAttempt && getLastAttempt()
   };
   return res.json(info);
 });
