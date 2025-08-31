@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { searchPlans, getPlan } = require('../services/marketplaceClient');
+const { searchPlans, getPlan, getClientDebug } = require('../services/marketplaceClient');
 
 function isConfigured() {
-  const required = [
-    'MARKETPLACE_API_BASE_URL',
-    'MARKETPLACE_API_KEY',
-  ];
-  const missing = required.filter((k) => !process.env[k]);
+  const base = process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE;
+  const hasKey = !!process.env.MARKETPLACE_API_KEY;
+  const missing = [];
+  if (!base) missing.push('MARKETPLACE_API_BASE_URL|MARKETPLACE_BASE');
+  if (!hasKey) missing.push('MARKETPLACE_API_KEY');
   return { ok: missing.length === 0, missing };
 }
 
@@ -73,7 +73,8 @@ router.get('/_debug', (req, res) => {
       planDetailsPath: process.env.MARKETPLACE_PLAN_DETAILS_PATH || '/plans/:id',
       apiKeyHeader: process.env.MARKETPLACE_API_KEY_HEADER || 'AUTO',
       hasApiKey: !!process.env.MARKETPLACE_API_KEY
-    }
+  },
+  client: getClientDebug()
   };
   return res.json(info);
 });
