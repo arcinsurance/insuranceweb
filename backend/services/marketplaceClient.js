@@ -6,6 +6,7 @@ function buildClient() {
   const timeout = parseInt(process.env.MARKETPLACE_TIMEOUT_MS || '15000', 10);
   const headers = {};
   headers['Accept'] = 'application/json';
+  headers['Content-Type'] = 'application/json';
 
   const apiKey = (process.env.MARKETPLACE_API_KEY || '').trim();
   if (process.env.MARKETPLACE_API_KEY_HEADER && apiKey) {
@@ -85,9 +86,9 @@ async function searchPlans(filters) {
   const methodCandidates = isHealthcare ? ['POST', 'GET'] : (preferredMethod === 'GET' ? ['GET', 'POST'] : ['POST', 'GET']);
   let pathCandidates;
   if (isHealthcare) {
-    // Prefer POST /plans for healthcare.gov search
-    pathCandidates = ['/plans'];
-    if (configuredPath && configuredPath !== '/plans') {
+    // Try both known endpoints for healthcare.gov
+    pathCandidates = ['/plans/search', '/plans'];
+    if (configuredPath && !pathCandidates.includes(configuredPath)) {
       pathCandidates.push(configuredPath);
     }
   } else {
