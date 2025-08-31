@@ -46,6 +46,8 @@ function buildClient() {
   return axios.create({ baseURL, timeout, headers });
 }
 
+let lastAttempt = null;
+
 function isHealthcareBase() {
   return /healthcare\.gov/.test((process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE || ''));
 }
@@ -105,8 +107,10 @@ async function searchPlans(filters) {
             params.apikey = apiKey;
             params['api-key'] = apiKey;
           }
+          lastAttempt = { method: 'GET', path, paramsKeys: Object.keys(params || {}), bodyKeys: [], startedAt: Date.now() };
           console.log('[Marketplace] TRY GET', (baseURL || '') + path, 'params keys:', Object.keys(params || {}));
           const { data } = await client.get(path, { params });
+          lastAttempt = { ...lastAttempt, status: 200, finishedAt: Date.now() };
           return data;
         } else {
           const params = {};
@@ -119,13 +123,16 @@ async function searchPlans(filters) {
             params.apikey = apiKey;
             params['api-key'] = apiKey;
           }
+          lastAttempt = { method: 'POST', path, paramsKeys: Object.keys(params || {}), bodyKeys: Object.keys(body || {}), startedAt: Date.now() };
           console.log('[Marketplace] TRY POST', (baseURL || '') + path, 'body keys:', Object.keys(body || {}), 'params keys:', Object.keys(params));
           const { data } = await client.post(path, body, { params });
+          lastAttempt = { ...lastAttempt, status: 200, finishedAt: Date.now() };
           return data;
         }
       } catch (err) {
         const status = (err && err.response && err.response.status) ? err.response.status : 'unknown';
         console.warn('[Marketplace] Attempt failed', method, (baseURL || '') + path, 'status:', status);
+        lastAttempt = { ...(lastAttempt || {}), status, finishedAt: Date.now() };
         lastErr = err;
         // If it's not a 405, continue trying others but will rethrow after exhausting
         continue;
@@ -190,3 +197,7 @@ function getClientDebug() {
 }
 
 module.exports = { searchPlans, getPlan, getClientDebug };
+
+module.exports.getLastAttempt = function() {
+  return lastAttempt;
+}
