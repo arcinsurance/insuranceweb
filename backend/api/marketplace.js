@@ -84,8 +84,9 @@ router.get('/plans/:id', async (req, res) => {
     return res.status(500).json({ success: false, error: `Marketplace API not configured: missing ${cfg.missing.join(', ')}` });
   }
   try {
-    const id = req.params.id;
-    const data = await getPlan(id);
+  const id = req.params.id;
+  const year = req.query.year !== undefined ? Number(req.query.year) : undefined;
+  const data = await getPlan(id, year);
     return res.json({ success: true, data });
   } catch (err) {
     const status = (err && err.response && err.response.status) ? err.response.status : 500;
