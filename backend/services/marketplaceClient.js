@@ -81,9 +81,19 @@ async function searchPlans(filters) {
   const apiKey = (process.env.MARKETPLACE_API_KEY || '').trim();
 
   const methodCandidates = isHealthcare ? ['POST', 'GET'] : (preferredMethod === 'GET' ? ['GET', 'POST'] : ['POST', 'GET']);
-  const pathCandidates = configuredPath.endsWith('/plans') ? [configuredPath, '/plans/search']
-                      : configuredPath.endsWith('/plans/search') ? [configuredPath, '/plans']
-                      : [configuredPath, '/plans', '/plans/search'];
+  let pathCandidates;
+  if (isHealthcare) {
+    // Known correct search path for healthcare.gov
+    pathCandidates = ['/plans/search'];
+    if (configuredPath && configuredPath !== '/plans/search') {
+      // allow trying configured as a last resort
+      pathCandidates.push(configuredPath);
+    }
+  } else {
+    pathCandidates = configuredPath.endsWith('/plans') ? [configuredPath, '/plans/search']
+                    : configuredPath.endsWith('/plans/search') ? [configuredPath, '/plans']
+                    : [configuredPath, '/plans', '/plans/search'];
+  }
 
   let lastErr = null;
   for (const method of methodCandidates) {
