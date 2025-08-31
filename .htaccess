@@ -1,3 +1,0 @@
-RewriteEngine On
-RewriteCond %{HTTP_HOST} ^insurancemultiservices\.com [NC]
-RewriteRule ^(.*)$ http://www.insurancemultiservices.com/$1 [L,R=301]
