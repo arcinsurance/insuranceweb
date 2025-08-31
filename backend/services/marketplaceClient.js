@@ -53,9 +53,20 @@ function isHealthcareBase() {
   return /healthcare\.gov/.test((process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE || ''));
 }
 
+function normalizeMarket(val) {
+  if (!val) return undefined;
+  const s = String(val).trim().toUpperCase();
+  if (["INDIVIDUAL", "IHP", "IND"].includes(s)) return "INDIVIDUAL";
+  if (["SHOP", "SMALL_GROUP", "SG"].includes(s)) return "SHOP";
+  return s; // fallback to uppercase provided value
+}
+
 function buildHealthcareSearchPayload(filters) {
   const f = filters || {};
-  const market = f.market;
+  const marketType = normalizeMarket(f.market || (f.market && f.market.type));
+  const market = (process.env.MARKETPLACE_MARKET_FORMAT === 'object')
+    ? { type: marketType || 'INDIVIDUAL' }
+    : (marketType || 'INDIVIDUAL');
   const place = {
     state: (f.state || (f.place && (f.place.state || f.place.State)) || '').toString().toUpperCase(),
     zipcode: (f.zipcode || f.zip || (f.place && (f.place.zipcode || f.place.postalCode || f.place.zip)) || '').toString(),
@@ -70,6 +81,11 @@ function buildHealthcareSearchPayload(filters) {
   // Derive household_size from ages if not set
   if (!household.household_size && Array.isArray(household.ages)) {
     household.household_size = household.ages.length;
+  }
+  // Ensure effective_date in YYYY-MM-DD if provided as Date
+  if (household.effective_date instanceof Date && !isNaN(household.effective_date)) {
+    const d = household.effective_date; const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0');
+    household.effective_date = `${d.getFullYear()}-${mm}-${dd}`;
   }
   return { market, place, household };
 }
