@@ -12,6 +12,7 @@
   "author": "AI Assistant",
   "license": "ISC",
   "dependencies": {
-    "nodemailer": "^6.9.13"
+    "nodemailer": "^6.9.13",
+    "vite": "^7.1.3"
   }
 }
