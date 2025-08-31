@@ -59,15 +59,15 @@ const createEmailTemplate = (lead, type) => {
 
 
 // The handler function for the serverless environment (e.g., Render, Vercel)
-export default async function handler(req, res) {
+async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
   // Check for essential environment variables
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD || !process.env.CENTRAL_EMAIL_ADDRESS) {
-      console.error('Missing required environment variables for email functionality.');
+  if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.CENTRAL_EMAIL_ADDRESS) {
+      console.error('Missing required SMTP environment variables for email functionality.');
       // Avoid leaking internal configuration details to the client
       return res.status(500).json({ success: false, error: 'Internal server configuration error.' });
   }
@@ -79,18 +79,20 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'Missing lead or agents data in request body.' });
   }
 
-  // Configure the Nodemailer transporter using Gmail service
+  // Configure the Nodemailer transporter using explicit SMTP
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT, 10),
+    secure: process.env.SMTP_PORT == '465', // true for 465, false for other ports
     auth: {
-      user: process.env.GMAIL_USER,       // Your Gmail address from environment variables
-      pass: process.env.GMAIL_APP_PASSWORD, // Your Google App Password from environment variables
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
   });
 
   // Prepare the email for the central inbox
   const centralMailOptions = {
-    from: `"Web Leads System" <${process.env.GMAIL_USER}>`,
+    from: `"Web Leads System" <${process.env.SMTP_USER}>`,
     to: process.env.CENTRAL_EMAIL_ADDRESS,
     subject: `New Lead (${lead.type}): ${lead.name}`,
     html: createEmailTemplate(lead, 'central'),
@@ -100,19 +102,19 @@ export default async function handler(req, res) {
     // Send the email to the central address
     await transporter.sendMail(centralMailOptions);
 
-    // If it's an agent-specific lead, find the agent and send a second email
-    if (lead.type === 'Agent' && lead.target) {
-        const targetAgent = agents.find(agent => agent.name === lead.target);
-        if (targetAgent && targetAgent.email) {
-            const agentMailOptions = {
-                from: `"Lead Notification" <${process.env.GMAIL_USER}>`,
-                to: targetAgent.email,
-                subject: `You have a new lead: ${lead.name}`,
-                html: createEmailTemplate(lead, 'agent'),
-            };
-            await transporter.sendMail(agentMailOptions);
-        }
+  // If it's an agent-specific lead, find the agent and send a second email
+  if (lead.type === 'Agent' && lead.target) {
+    const targetAgent = agents.find(agent => agent.name === lead.target);
+    if (targetAgent && targetAgent.email) {
+      const agentMailOptions = {
+        from: `"Lead Notification" <${process.env.SMTP_USER}>`,
+        to: targetAgent.email,
+        subject: `You have a new lead: ${lead.name}`,
+        html: createEmailTemplate(lead, 'agent'),
+      };
+      await transporter.sendMail(agentMailOptions);
     }
+  }
     
     // Respond with success
     return res.status(200).json({ success: true });
@@ -122,3 +124,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: 'Failed to send email due to a server error.' });
   }
 }
+
+module.exports = { default: handler };
