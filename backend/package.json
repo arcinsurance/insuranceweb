@@ -13,6 +13,8 @@
   "license": "ISC",
   "dependencies": {
     "nodemailer": "^6.9.13",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "vite": "^7.1.3"
   }
 }
