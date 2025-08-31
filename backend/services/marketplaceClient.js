@@ -14,11 +14,13 @@ function buildClient() {
     headers['Authorization'] = `${scheme} ${apiKey}`;
   }
 
-  // Heuristic: if baseURL looks like healthcare.gov, always set X-Api-Key
+  // Heuristic: if baseURL looks like healthcare.gov, always set API key headers
   if (apiKey && /healthcare\.gov/.test(baseURL || '')) {
     headers['X-Api-Key'] = apiKey;
-    // Also include lowercase variant just in case some infra is strict (HTTP header names are case-insensitive, but play it safe)
     headers['x-api-key'] = apiKey;
+    headers['X-API-Key'] = apiKey;
+    headers['api-key'] = apiKey;
+    headers['apikey'] = apiKey;
     // Remove Authorization to avoid confusing upstream
     if (headers['Authorization']) delete headers['Authorization'];
   }
@@ -55,13 +57,21 @@ async function searchPlans(filters) {
   try {
     if (method === 'GET') {
       const params = { ...(filters || {}) };
-      if (isHealthcare && apiKey) params.api_key = apiKey;
+      if (isHealthcare && apiKey) {
+        params.api_key = apiKey;
+        params.apikey = apiKey;
+        params['api-key'] = apiKey;
+      }
       console.log('[Marketplace] GET', (baseURL || '') + path, 'params keys:', Object.keys(params || {}));
       const { data } = await client.get(path, { params });
       return data;
     } else {
       const params = {};
-      if (isHealthcare && apiKey) params.api_key = apiKey;
+      if (isHealthcare && apiKey) {
+        params.api_key = apiKey;
+        params.apikey = apiKey;
+        params['api-key'] = apiKey;
+      }
       console.log('[Marketplace] POST', (baseURL || '') + path, 'body keys:', Object.keys(filters || {}), 'params keys:', Object.keys(params));
       const { data } = await client.post(path, filters, { params });
       return data;
