@@ -2,6 +2,40 @@ const express = require('express');
 const router = express.Router();
 const { searchPlans, getPlan, getClientDebug } = require('../services/marketplaceClient');
 
+function toInt(x) {
+  if (x === undefined || x === null || x === '') return undefined;
+  const n = Number(x);
+  return Number.isFinite(n) ? Math.trunc(n) : undefined;
+}
+
+function normalizeFilters(input) {
+  const f = { ...(input || {}) };
+  // year
+  if (f.year !== undefined) {
+    const n = toInt(f.year);
+    if (n !== undefined) f.year = n;
+  }
+  // householdSize
+  if (f.householdSize !== undefined) {
+    const n = toInt(f.householdSize);
+    if (n !== undefined) f.householdSize = n;
+  }
+  // ages: "35" | "35,40" | ["35","40"] | [35,40]
+  if (f.ages !== undefined) {
+    let ages = f.ages;
+    if (typeof ages === 'string') {
+      ages = ages.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    if (Array.isArray(ages)) {
+      ages = ages.map(a => toInt(a)).filter(v => v !== undefined);
+    }
+    if (Array.isArray(ages) && ages.length) {
+      f.ages = ages;
+    }
+  }
+  return f;
+}
+
 function isConfigured() {
   const base = process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE;
   const hasKey = !!process.env.MARKETPLACE_API_KEY;
@@ -17,7 +51,7 @@ router.post('/search', async (req, res) => {
     return res.status(500).json({ success: false, error: `Marketplace API not configured: missing ${cfg.missing.join(', ')}` });
   }
   try {
-    const filters = req.body || {};
+  const filters = normalizeFilters(req.body || {});
     const data = await searchPlans(filters);
     return res.json({ success: true, data });
   } catch (err) {
@@ -34,7 +68,7 @@ router.get('/search', async (req, res) => {
     return res.status(500).json({ success: false, error: `Marketplace API not configured: missing ${cfg.missing.join(', ')}` });
   }
   try {
-    const filters = req.query || {};
+  const filters = normalizeFilters(req.query || {});
     const data = await searchPlans(filters);
     return res.json({ success: true, data });
   } catch (err) {
