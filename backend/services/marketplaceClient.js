@@ -49,15 +49,21 @@ async function searchPlans(filters) {
   const defaultMethod = /healthcare\.gov/.test((process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE || '')) ? 'GET' : 'POST';
   const method = (process.env.MARKETPLACE_SEARCH_METHOD || defaultMethod).toUpperCase();
   const path = process.env.MARKETPLACE_SEARCH_PATH || '/plans/search';
+  const isHealthcare = /healthcare\.gov/.test((process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE || ''));
+  const apiKey = (process.env.MARKETPLACE_API_KEY || '').trim();
 
   try {
     if (method === 'GET') {
-      console.log('[Marketplace] GET', (baseURL || '') + path, 'params keys:', Object.keys(filters || {}));
-      const { data } = await client.get(path, { params: filters });
+      const params = { ...(filters || {}) };
+      if (isHealthcare && apiKey) params.api_key = apiKey;
+      console.log('[Marketplace] GET', (baseURL || '') + path, 'params keys:', Object.keys(params || {}));
+      const { data } = await client.get(path, { params });
       return data;
     } else {
-      console.log('[Marketplace] POST', (baseURL || '') + path, 'body keys:', Object.keys(filters || {}));
-      const { data } = await client.post(path, filters);
+      const params = {};
+      if (isHealthcare && apiKey) params.api_key = apiKey;
+      console.log('[Marketplace] POST', (baseURL || '') + path, 'body keys:', Object.keys(filters || {}), 'params keys:', Object.keys(params));
+      const { data } = await client.post(path, filters, { params });
       return data;
     }
   } catch (err) {
@@ -71,7 +77,11 @@ async function getPlan(planId) {
   const client = buildClient();
   let path = process.env.MARKETPLACE_PLAN_DETAILS_PATH || '/plans/:id';
   path = path.replace(':id', encodeURIComponent(planId));
-  const { data } = await client.get(path);
+  const isHealthcare = /healthcare\.gov/.test((process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE || ''));
+  const apiKey = (process.env.MARKETPLACE_API_KEY || '').trim();
+  const params = {};
+  if (isHealthcare && apiKey) params.api_key = apiKey;
+  const { data } = await client.get(path, { params });
   return data;
 }
 
