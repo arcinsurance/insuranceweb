@@ -5,6 +5,7 @@ function buildClient() {
   const baseURL = process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE;
   const timeout = parseInt(process.env.MARKETPLACE_TIMEOUT_MS || '15000', 10);
   const headers = {};
+  headers['Accept'] = 'application/json';
 
   const apiKey = (process.env.MARKETPLACE_API_KEY || '').trim();
   if (process.env.MARKETPLACE_API_KEY_HEADER && apiKey) {
@@ -49,38 +50,57 @@ async function searchPlans(filters) {
   const client = buildClient();
   const baseURL = process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE;
   const defaultMethod = /healthcare\.gov/.test((process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE || '')) ? 'GET' : 'POST';
-  const method = (process.env.MARKETPLACE_SEARCH_METHOD || defaultMethod).toUpperCase();
-  const path = process.env.MARKETPLACE_SEARCH_PATH || '/plans/search';
+  const preferredMethod = (process.env.MARKETPLACE_SEARCH_METHOD || defaultMethod).toUpperCase();
+  const configuredPath = process.env.MARKETPLACE_SEARCH_PATH || '/plans/search';
   const isHealthcare = /healthcare\.gov/.test((process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE || ''));
   const apiKey = (process.env.MARKETPLACE_API_KEY || '').trim();
 
-  try {
-    if (method === 'GET') {
-      const params = { ...(filters || {}) };
-      if (isHealthcare && apiKey) {
-        params.api_key = apiKey;
-        params.apikey = apiKey;
-        params['api-key'] = apiKey;
+  const methodCandidates = preferredMethod === 'GET' ? ['GET', 'POST'] : ['POST', 'GET'];
+  const pathCandidates = configuredPath.endsWith('/plans') ? [configuredPath, '/plans/search']
+                      : configuredPath.endsWith('/plans/search') ? [configuredPath, '/plans']
+                      : [configuredPath, '/plans', '/plans/search'];
+
+  let lastErr = null;
+  for (const method of methodCandidates) {
+    for (const path of pathCandidates) {
+      try {
+        if (method === 'GET') {
+          const params = { ...(filters || {}) };
+          if (isHealthcare && apiKey) {
+            params.api_key = apiKey;
+            params.apikey = apiKey;
+            params['api-key'] = apiKey;
+          }
+          console.log('[Marketplace] TRY GET', (baseURL || '') + path, 'params keys:', Object.keys(params || {}));
+          const { data } = await client.get(path, { params });
+          return data;
+        } else {
+          const params = {};
+          if (isHealthcare && apiKey) {
+            params.api_key = apiKey;
+            params.apikey = apiKey;
+            params['api-key'] = apiKey;
+          }
+          console.log('[Marketplace] TRY POST', (baseURL || '') + path, 'body keys:', Object.keys(filters || {}), 'params keys:', Object.keys(params));
+          const { data } = await client.post(path, filters, { params });
+          return data;
+        }
+      } catch (err) {
+        const status = (err && err.response && err.response.status) ? err.response.status : 'unknown';
+        console.warn('[Marketplace] Attempt failed', method, (baseURL || '') + path, 'status:', status);
+        lastErr = err;
+        // If it's not a 405, continue trying others but will rethrow after exhausting
+        continue;
       }
-      console.log('[Marketplace] GET', (baseURL || '') + path, 'params keys:', Object.keys(params || {}));
-      const { data } = await client.get(path, { params });
-      return data;
-    } else {
-      const params = {};
-      if (isHealthcare && apiKey) {
-        params.api_key = apiKey;
-        params.apikey = apiKey;
-        params['api-key'] = apiKey;
-      }
-      console.log('[Marketplace] POST', (baseURL || '') + path, 'body keys:', Object.keys(filters || {}), 'params keys:', Object.keys(params));
-      const { data } = await client.post(path, filters, { params });
-      return data;
     }
-  } catch (err) {
-    const status = (err && err.response && err.response.status) ? err.response.status : 'unknown';
-    console.error('[Marketplace] Upstream error', method, (baseURL || '') + path, 'status:', status);
-    throw err;
   }
+  // Exhausted attempts
+  if (lastErr) {
+    const status = (lastErr && lastErr.response && lastErr.response.status) ? lastErr.response.status : 'unknown';
+    console.error('[Marketplace] All attempts failed, last status:', status);
+    throw lastErr;
+  }
+  throw new Error('Marketplace search failed with no attempts executed');
 }
 
 async function getPlan(planId) {
