@@ -65,6 +65,7 @@ const Header = ({ onQuoteClick, onAppointmentClick, onNavClick, onMobileMenuTogg
           </div>
           <a href="#about" onClick={(e) => { e.preventDefault(); onNavClick('home', '#about'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_about}</a>
           <a href="#agents" onClick={(e) => { e.preventDefault(); onNavClick('home', '#agents'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_agents}</a>
+          <a href="#plans" onClick={(e) => { e.preventDefault(); onNavClick('plans'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_view_plans || 'View plans'}</a>
           <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('login'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_agent_login}</a>
           <button onClick={onAppointmentClick} className="text-gray-600 hover:text-brand-blue transition-colors font-medium">
             {t.schedule_appointment}
@@ -118,6 +119,7 @@ const MobileMenu = ({ isOpen, onClose, onNavClick, onQuoteClick, onAppointmentCl
                     <hr className="my-4"/>
                      <a href="#about" onClick={(e) => { e.preventDefault(); onNavClick('home', '#about'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_about}</a>
                      <a href="#agents" onClick={(e) => { e.preventDefault(); onNavClick('home', '#agents'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_agents}</a>
+                    <a href="#plans" onClick={(e) => { e.preventDefault(); onNavClick('plans'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_view_plans || 'View plans'}</a>
                      
                     <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('login'); onClose(); }} className="text-left text-gray-700 hover:text-brand-blue py-2">{t.nav_agent_login}</a>
 
@@ -189,11 +191,13 @@ const ServicesSection = ({ onServiceClick }: { onServiceClick: (id: string) => v
           <h2 className="text-4xl font-bold text-brand-dark">{t.services_title}</h2>
           <p className="text-lg text-gray-600 mt-4 max-w-2xl mx-auto">{t.services_subtitle}</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {services.map((service) => (
-            <ServiceCard key={service.id} service={service} onClick={() => onServiceClick(service.id)} />
-          ))}
-        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                    {services.map((service) => (
+                        <div key={service.id}>
+                            <ServiceCard service={service} onClick={() => onServiceClick(service.id)} />
+                        </div>
+                    ))}
+                </div>
       </div>
     </section>
   );
@@ -230,7 +234,7 @@ const StarRating = ({ rating, className = "" }: { rating: number, className?: st
     return (
         <div className={`flex ${className}`}>
             {[...Array(5)].map((_, i) => (
-                <StarIcon key={i} filled={i < rating} />
+                <span key={i}><StarIcon filled={i < rating} /></span>
             ))}
         </div>
     );
@@ -282,7 +286,7 @@ const ReviewsSection = ({ onSeeAllClick }: { onSeeAllClick: () => void }) => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {visibleReviews.map((review, index) => (
-                        <ReviewCard key={index} review={review} />
+                        <div key={index}><ReviewCard review={review} /></div>
                     ))}
                 </div>
                 <div className="text-center mt-12">
@@ -321,7 +325,7 @@ const ReviewsPage = ({ onGoHome }: { onGoHome: () => void }) => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {REVIEWS.map((review, index) => (
-                        <ReviewCard key={index} review={review} />
+                        <div key={index}><ReviewCard review={review} /></div>
                     ))}
                 </div>
                  <div className="text-center mt-12">
@@ -406,7 +410,7 @@ const AgentsSection = ({ onAgentContact }: { onAgentContact: (agent: Agent) => v
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {agents.map((agent) => (
-                <AgentCard key={agent.npn} agent={agent} onContact={onAgentContact} />
+                <div key={agent.npn}><AgentCard agent={agent} onContact={onAgentContact} /></div>
             ))}
             </div>
         </div>
@@ -546,7 +550,7 @@ const ServicePage = ({ service, onGoHome }: { service: ServiceItem, onGoHome: ()
                         <h2 className="text-3xl font-bold text-center text-brand-dark mb-12">{t.service_page_what_we_offer}</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {service.keyFeatures.map((feature, index) => (
-                                <KeyFeatureDisplay key={index} feature={feature} />
+                                <div key={index}><KeyFeatureDisplay feature={feature} /></div>
                             ))}
                         </div>
                     </section>
@@ -595,6 +599,119 @@ const HomePage = ({ onQuoteClick, onAgentContact, onApplyClick, onSeeAllReviews,
             <AgentsSection onAgentContact={onAgentContact} />
             <JoinTeamSection onApplyClick={onApplyClick} />
         </>
+    );
+};
+
+// Marketplace Plans Page
+const PlansPage = ({ onGoHome }: { onGoHome: () => void }) => {
+    const { t } = useLanguage();
+    const [form, setForm] = useState({
+        market: 'Individual', state: '', zipcode: '', countyfips: '', year: new Date().getFullYear(), ages: '', effective_date: ''
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [results, setResults] = useState<any | null>(null);
+
+    useEffect(() => { window.scrollTo(0, 0); }, []);
+
+    const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target; setForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const onSubmit = async (e: React.FormEvent) => {
+        e.preventDefault(); setLoading(true); setError(null); setResults(null);
+        try {
+            const agesArray = form.ages ? form.ages.split(',').map(s => s.trim()).filter(Boolean).map(Number) : [];
+            const body: any = {
+                market: form.market,
+                state: form.state.trim().toUpperCase(),
+                zipcode: form.zipcode.trim(),
+                year: Number(form.year)
+            };
+            if (form.countyfips.trim()) body.countyfips = form.countyfips.trim();
+            if (agesArray.length) body.ages = agesArray;
+            if (form.effective_date.trim()) body.effective_date = form.effective_date.trim();
+            const resp = await fetch('/api/marketplace/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const json = await resp.json();
+            if (!resp.ok || !json.success) throw new Error(typeof json.error === 'string' ? json.error : 'Search failed');
+            setResults(json.data);
+        } catch (err: any) {
+            setError(err?.message || 'Error');
+        } finally { setLoading(false); }
+    };
+
+    return (
+        <div className="py-16 bg-white">
+            <div className="container mx-auto px-6 max-w-5xl">
+                <button onClick={onGoHome} className="mb-6 text-brand-blue hover:underline font-semibold">&larr; {t.back_to_home}</button>
+                <h1 className="text-3xl md:text-4xl font-bold text-brand-dark mb-2">{t.plans_title || 'Find health plans in your area'}</h1>
+                <p className="text-gray-600 mb-8">{t.plans_subtitle || 'Enter your location and basic info to see available marketplace plans.'}</p>
+
+                <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-blue-50 p-4 rounded-lg mb-8">
+                    <div>
+                        <label className="block text-sm text-gray-700 mb-1">{t.plans_market || 'Market'}</label>
+                        <select name="market" value={form.market} onChange={onChange} className="w-full border rounded px-3 py-2">
+                            <option value="Individual">{t.plans_market_individual || 'Individual'}</option>
+                            <option value="Shop">{t.plans_market_shop || 'Shop'}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm text-gray-700 mb-1">{t.plans_state || 'State'}</label>
+                        <input name="state" value={form.state} onChange={onChange} required maxLength={2} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-gray-700 mb-1">{t.plans_zip || 'ZIP code'}</label>
+                        <input name="zipcode" value={form.zipcode} onChange={onChange} required className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-gray-700 mb-1">{t.plans_countyfips || 'County FIPS (optional)'}</label>
+                        <input name="countyfips" value={form.countyfips} onChange={onChange} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-gray-700 mb-1">{t.plans_year || 'Year'}</label>
+                        <input name="year" type="number" value={form.year} onChange={onChange} className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-gray-700 mb-1">{t.plans_ages || 'Ages'}</label>
+                        <input name="ages" value={form.ages} onChange={onChange} placeholder="27, 39" className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div className="md:col-span-3">
+                        <label className="block text-sm text-gray-700 mb-1">{t.plans_effective_date || 'Effective date'}</label>
+                        <input name="effective_date" value={form.effective_date} onChange={onChange} placeholder="2025-10-01" className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div className="md:col-span-3">
+                        <button type="submit" className="bg-brand-orange text-white px-6 py-3 rounded font-semibold hover:bg-orange-600" disabled={loading}>
+                            {loading ? (t.plans_loading || 'Searching...') : (t.plans_search || 'Search Plans')}
+                        </button>
+                    </div>
+                </form>
+
+                {error && <div className="bg-red-100 text-red-800 p-3 rounded mb-6">{t.plans_error || 'There was a problem'}: {error}</div>}
+
+                {results && (
+                    <div>
+                        <h2 className="text-2xl font-bold text-brand-dark mb-4">{t.plans_results || 'Results'}</h2>
+                        {Array.isArray(results.plans) && results.plans.length ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {results.plans.map((p: any, idx: number) => (
+                                    <div key={p.plan_id || idx} className="bg-white rounded shadow p-4">
+                                        <div className="font-semibold text-brand-dark mb-1">{p.plan_name || p.marketing_name || 'Plan'}</div>
+                                        <div className="text-sm text-gray-600 mb-2">{p.issuer_name || p.issuer || ''}</div>
+                                        <div className="text-sm text-gray-700">Metal: {p.metal_level || p.metal || '-'}</div>
+                                        <div className="text-sm text-gray-700">Type: {p.plan_type || '-'}</div>
+                                        <div className="mt-3">
+                                            <a href="#" onClick={(e) => { e.preventDefault(); }} className="text-brand-blue hover:underline">{t.plans_view_details || 'View details'}</a>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-gray-600">{t.plans_no_results || 'No plans found.'}</div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
     );
 };
 
@@ -728,6 +845,9 @@ export default function App() {
         }
         if (route.page === 'reviews') {
             return <ReviewsPage onGoHome={() => setRoute({ view: 'public', page: 'home' })} />;
+        }
+        if (route.page === 'plans') {
+            return <PlansPage onGoHome={() => setRoute({ view: 'public', page: 'home' })} />;
         }
         const currentService = services.find(s => s.id === route.page);
         if (currentService) {
