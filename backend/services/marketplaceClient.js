@@ -6,18 +6,19 @@ function buildClient() {
   const timeout = parseInt(process.env.MARKETPLACE_TIMEOUT_MS || '15000', 10);
   const headers = {};
 
-  if (process.env.MARKETPLACE_API_KEY_HEADER) {
-    headers[process.env.MARKETPLACE_API_KEY_HEADER] = process.env.MARKETPLACE_API_KEY;
-  } else if (process.env.MARKETPLACE_API_KEY) {
+  const apiKey = (process.env.MARKETPLACE_API_KEY || '').trim();
+  if (process.env.MARKETPLACE_API_KEY_HEADER && apiKey) {
+    headers[process.env.MARKETPLACE_API_KEY_HEADER] = apiKey;
+  } else if (apiKey) {
     const scheme = process.env.MARKETPLACE_AUTH_SCHEME || 'Bearer';
-    headers['Authorization'] = `${scheme} ${process.env.MARKETPLACE_API_KEY}`;
+    headers['Authorization'] = `${scheme} ${apiKey}`;
   }
 
   // Heuristic: if baseURL looks like healthcare.gov, always set X-Api-Key
-  if (process.env.MARKETPLACE_API_KEY && /healthcare\.gov/.test(baseURL || '')) {
-    headers['X-Api-Key'] = process.env.MARKETPLACE_API_KEY;
+  if (apiKey && /healthcare\.gov/.test(baseURL || '')) {
+    headers['X-Api-Key'] = apiKey;
     // Also include lowercase variant just in case some infra is strict (HTTP header names are case-insensitive, but play it safe)
-    headers['x-api-key'] = process.env.MARKETPLACE_API_KEY;
+    headers['x-api-key'] = apiKey;
     // Remove Authorization to avoid confusing upstream
     if (headers['Authorization']) delete headers['Authorization'];
   }
@@ -82,13 +83,14 @@ function getClientDebug() {
   const searchPath = process.env.MARKETPLACE_SEARCH_PATH || '/plans/search';
   // Build headers same way but only return names
   const hdrs = {};
-  if (process.env.MARKETPLACE_API_KEY_HEADER) {
+  const apiKey = (process.env.MARKETPLACE_API_KEY || '').trim();
+  if (process.env.MARKETPLACE_API_KEY_HEADER && apiKey) {
     hdrs[process.env.MARKETPLACE_API_KEY_HEADER] = 'set';
-  } else if (process.env.MARKETPLACE_API_KEY) {
+  } else if (apiKey) {
     const scheme = process.env.MARKETPLACE_AUTH_SCHEME || 'Bearer';
     hdrs['Authorization'] = `${scheme} ******`;
   }
-  if (process.env.MARKETPLACE_API_KEY && /healthcare\.gov/.test(baseURL || '')) {
+  if (apiKey && /healthcare\.gov/.test(baseURL || '')) {
     hdrs['X-Api-Key'] = 'set';
     hdrs['x-api-key'] = 'set';
     if (hdrs['Authorization']) delete hdrs['Authorization'];
@@ -104,7 +106,8 @@ function getClientDebug() {
     timeout,
     method,
     searchPath,
-    headerNames: Object.keys(hdrs)
+  headerNames: Object.keys(hdrs),
+  apiKeyLength: apiKey.length
   };
 }
 
