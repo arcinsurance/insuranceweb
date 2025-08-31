@@ -49,16 +49,42 @@ router.get('/countyfips', async (req, res) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
       return res.status(500).json({ success: false, error: 'Lat/Lon inválidos para el ZIP' });
     }
-    // 2) Lat/Lon -> county FIPS via FCC
-    const fccUrl = `https://geo.fcc.gov/api/census/block/find?format=json&latitude=${lat}&longitude=${lon}`;
-    const fccResp = await getWithRetry(fccUrl, { timeout: 8000 }, 2, 250);
-    const county = fccResp.data?.County || fccResp.data?.county || fccResp.data?.State?.county || null;
-    if (!county || !(county.FIPS || county.fips || county.fips_code)) {
+    // 2) Lat/Lon -> county FIPS via FCC, with Census fallback
+    let fips, name;
+    try {
+      const fccUrl = `https://geo.fcc.gov/api/census/block/find?format=json&latitude=${lat}&longitude=${lon}`;
+      const fccResp = await getWithRetry(fccUrl, { timeout: 8000 }, 2, 250);
+      const county = fccResp.data?.County || fccResp.data?.county || fccResp.data?.State?.county || null;
+      if (county && (county.FIPS || county.fips || county.fips_code)) {
+        fips = (county.FIPS || county.fips || county.fips_code).toString();
+        name = (county.name || county.NAME || county.county_name || '').toString();
+      }
+    } catch (_) {
+      // ignore, will try Census fallback
+    }
+
+    if (!fips) {
+      // Census Geocoder fallback
+      const x = lon; const y = lat;
+      const params = new URLSearchParams({
+        x: String(x), y: String(y), format: 'json', benchmark: 'Public_AR_Census2020', vintage: 'Census2020_Census2020'
+      });
+      const censusUrl = `https://geocoding.geo.census.gov/geocoder/geographies/coordinates?${params.toString()}`;
+      const censusResp = await getWithRetry(censusUrl, { timeout: 10000 }, 2, 300);
+      const resu = censusResp.data?.result || {};
+      const geogs = resu?.geographies || {};
+      const counties = Array.isArray(geogs?.Counties) ? geogs.Counties : (Array.isArray(geogs['2010 Census Counties']) ? geogs['2010 Census Counties'] : []);
+      if (counties && counties.length) {
+        const c = counties[0];
+        fips = (c.GEOID || c.STATE + c.COUNTY || c.COUNTYFP || c.COUNTY) ? String(c.GEOID || (c.STATE + c.COUNTY) || c.COUNTYFP || c.COUNTY) : undefined;
+        name = (c.NAME || c.BASENAME || c.FullName || '').toString();
+      }
+    }
+
+    if (!fips) {
       return res.status(404).json({ success: false, error: 'No se pudo determinar el County FIPS' });
     }
-    const fips = (county.FIPS || county.fips || county.fips_code).toString();
-    const name = (county.name || county.NAME || county.county_name || '').toString();
-    return res.json({ success: true, data: { countyfips: fips, county: name, latitude: lat, longitude: lon } });
+    return res.json({ success: true, data: { countyfips: fips, county: name || '', latitude: lat, longitude: lon } });
   } catch (err) {
     const status = err?.response?.status || 500;
     let detail = err?.response?.data || err?.message || 'Error de servicio geo';
