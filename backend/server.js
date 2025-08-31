@@ -10,10 +10,16 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
 let sendLeadEmail;
+let marketplaceRouter;
 try {
 	sendLeadEmail = require('./api/send-lead-email.js');
 } catch (e) {
 	console.error('No se pudo cargar ./api/send-lead-email.js:', e);
+}
+try {
+	marketplaceRouter = require('./api/marketplace');
+} catch (e) {
+	console.error('No se pudo cargar ./api/marketplace:', e);
 }
 
 const app = express();
@@ -26,6 +32,16 @@ if (sendLeadEmail && sendLeadEmail.default) {
 	app.post('/api/send-lead-email', (req, res) => {
 		req.method = 'POST';
 		sendLeadEmail.default(req, res);
+	});
+}
+
+// Marketplace API proxy routes
+if (marketplaceRouter) {
+	app.use('/api/marketplace', marketplaceRouter);
+} else {
+	// Diagnostic fallback so clients don't hit SPA or generic Cannot POST
+	app.all('/api/marketplace/*', (req, res) => {
+		res.status(500).json({ success: false, error: 'Marketplace router not loaded on server' });
 	});
 }
 
