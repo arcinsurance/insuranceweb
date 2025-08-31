@@ -83,10 +83,9 @@ async function searchPlans(filters) {
   const methodCandidates = isHealthcare ? ['POST', 'GET'] : (preferredMethod === 'GET' ? ['GET', 'POST'] : ['POST', 'GET']);
   let pathCandidates;
   if (isHealthcare) {
-    // Known correct search path for healthcare.gov
-    pathCandidates = ['/plans/search'];
-    if (configuredPath && configuredPath !== '/plans/search') {
-      // allow trying configured as a last resort
+    // Prefer POST /plans for healthcare.gov search
+    pathCandidates = ['/plans'];
+    if (configuredPath && configuredPath !== '/plans') {
       pathCandidates.push(configuredPath);
     }
   } else {
