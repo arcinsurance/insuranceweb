@@ -11,6 +11,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 let sendLeadEmail;
 let marketplaceRouter;
+let marketplaceLoadError = null;
 try {
 	sendLeadEmail = require('./api/send-lead-email.js');
 } catch (e) {
@@ -19,6 +20,7 @@ try {
 try {
 	marketplaceRouter = require('./api/marketplace');
 } catch (e) {
+	marketplaceLoadError = e;
 	console.error('No se pudo cargar ./api/marketplace:', e);
 }
 
@@ -26,6 +28,26 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
+
+// Marketplace diagnostics available regardless of router load state
+app.get('/api/marketplace/_loaderr', (req, res) => {
+	const errInfo = marketplaceLoadError ? {
+		message: marketplaceLoadError.message || String(marketplaceLoadError),
+		stack: (marketplaceLoadError.stack || '').split('\n').slice(0, 5)
+	} : null;
+	return res.json({
+		loaded: !!marketplaceRouter,
+		error: errInfo,
+		config: {
+			baseURL: process.env.MARKETPLACE_API_BASE_URL || process.env.MARKETPLACE_BASE || null,
+			searchMethod: process.env.MARKETPLACE_SEARCH_METHOD || 'AUTO',
+			searchPath: process.env.MARKETPLACE_SEARCH_PATH || '/plans/search',
+			planDetailsPath: process.env.MARKETPLACE_PLAN_DETAILS_PATH || '/plans/:id',
+			apiKeyHeader: process.env.MARKETPLACE_API_KEY_HEADER || 'AUTO',
+			hasApiKey: !!process.env.MARKETPLACE_API_KEY
+		}
+	});
+});
 
 // Adapt the serverless handler to Express
 if (sendLeadEmail && sendLeadEmail.default) {
