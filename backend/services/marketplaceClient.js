@@ -6,6 +6,7 @@ function buildClient() {
   const timeout = parseInt(process.env.MARKETPLACE_TIMEOUT_MS || '15000', 10);
   const headers = {};
   headers['Accept'] = 'application/json';
+  headers['Content-Type'] = 'application/json';
 
   const apiKey = (process.env.MARKETPLACE_API_KEY || '').trim();
   if (process.env.MARKETPLACE_API_KEY_HEADER && apiKey) {
@@ -82,13 +83,22 @@ async function searchPlans(filters) {
   const isHealthcare = isHealthcareBase();
   const apiKey = (process.env.MARKETPLACE_API_KEY || '').trim();
 
-  const methodCandidates = isHealthcare ? ['POST', 'GET'] : (preferredMethod === 'GET' ? ['GET', 'POST'] : ['POST', 'GET']);
+  // Passthrough debug mode: let caller specify path/method/body exactly
+  const passthrough = filters && filters._passthrough === true;
+  let methodCandidates = isHealthcare ? ['POST'] : (preferredMethod === 'GET' ? ['GET', 'POST'] : ['POST', 'GET']);
+  if (passthrough) {
+    const m = (filters._method || preferredMethod || 'POST').toUpperCase();
+    methodCandidates = [m];
+  }
   let pathCandidates;
   if (isHealthcare) {
-    // Prefer POST /plans for healthcare.gov search
-    pathCandidates = ['/plans'];
-    if (configuredPath && configuredPath !== '/plans') {
+    // Only use the search endpoint for healthcare.gov
+    pathCandidates = ['/plans/search'];
+    if (configuredPath && !pathCandidates.includes(configuredPath)) {
       pathCandidates.push(configuredPath);
+    }
+    if (passthrough && filters._path) {
+      pathCandidates = [filters._path];
     }
   } else {
     pathCandidates = configuredPath.endsWith('/plans') ? [configuredPath, '/plans/search']
@@ -102,6 +112,10 @@ async function searchPlans(filters) {
       try {
         if (method === 'GET') {
           const params = { ...(filters || {}) };
+          if (passthrough) {
+            // remove control keys
+            delete params._passthrough; delete params._path; delete params._method; delete params._body;
+          }
           if (isHealthcare && apiKey) {
             params.api_key = apiKey;
             params.apikey = apiKey;
@@ -115,7 +129,9 @@ async function searchPlans(filters) {
         } else {
           const params = {};
           let body = filters || {};
-          if (isHealthcare) {
+          if (passthrough) {
+            body = filters._body ? filters._body : (() => { const b = { ...filters }; delete b._passthrough; delete b._path; delete b._method; delete b._body; return b; })();
+          } else if (isHealthcare) {
             body = buildHealthcareSearchPayload(filters || {});
           }
           if (isHealthcare && apiKey) {
@@ -131,8 +147,10 @@ async function searchPlans(filters) {
         }
       } catch (err) {
         const status = (err && err.response && err.response.status) ? err.response.status : 'unknown';
+        let errorDetail;
+        try { errorDetail = err && err.response && err.response.data ? err.response.data : (err && err.message ? err.message : undefined); } catch (_) {}
         console.warn('[Marketplace] Attempt failed', method, (baseURL || '') + path, 'status:', status);
-        lastAttempt = { ...(lastAttempt || {}), status, finishedAt: Date.now() };
+        lastAttempt = { ...(lastAttempt || {}), status, errorDetail, finishedAt: Date.now() };
         lastErr = err;
         // If it's not a 405, continue trying others but will rethrow after exhausting
         continue;
