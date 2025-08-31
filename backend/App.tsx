@@ -65,7 +65,7 @@ const Header = ({ onQuoteClick, onAppointmentClick, onNavClick, onMobileMenuTogg
           </div>
           <a href="#about" onClick={(e) => { e.preventDefault(); onNavClick('home', '#about'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_about}</a>
           <a href="#agents" onClick={(e) => { e.preventDefault(); onNavClick('home', '#agents'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_agents}</a>
-          <a href="#plans" onClick={(e) => { e.preventDefault(); onNavClick('plans'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_view_plans || 'View plans'}</a>
+          <a href="/#plans" onClick={(e) => { e.preventDefault(); onNavClick('plans'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_view_plans || 'View plans'}</a>
           <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('login'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_agent_login}</a>
           <button onClick={onAppointmentClick} className="text-gray-600 hover:text-brand-blue transition-colors font-medium">
             {t.schedule_appointment}
@@ -119,7 +119,7 @@ const MobileMenu = ({ isOpen, onClose, onNavClick, onQuoteClick, onAppointmentCl
                     <hr className="my-4"/>
                      <a href="#about" onClick={(e) => { e.preventDefault(); onNavClick('home', '#about'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_about}</a>
                      <a href="#agents" onClick={(e) => { e.preventDefault(); onNavClick('home', '#agents'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_agents}</a>
-                    <a href="#plans" onClick={(e) => { e.preventDefault(); onNavClick('plans'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_view_plans || 'View plans'}</a>
+                    <a href="/#plans" onClick={(e) => { e.preventDefault(); onNavClick('plans'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_view_plans || 'View plans'}</a>
                      
                     <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('login'); onClose(); }} className="text-left text-gray-700 hover:text-brand-blue py-2">{t.nav_agent_login}</a>
 
@@ -140,7 +140,7 @@ const Hero = ({ onQuoteClick }: { onQuoteClick: () => void }) => {
   return (
     <section className="relative text-white py-24 md:py-32 bg-brand-dark">
         <div className="absolute inset-0">
-            <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAKABQDASIAAhEBAxEB/8QAFwAAAwEAAAAAAAAAAAAAAAAAAAECCP/EACIQAAEDAwQDAAAAAAAAAAAAAAECAwQABREGEiETFDFBYf/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwDae4yYsp5DL0hlDi/pSo4zUe231iQ2VvLbZGeApeCaq7622/cGlupCylOCDjI5rA2gG6PAYGPkKAf/9k=" alt="Doctor showing information on a tablet" className="w-full h-full object-cover opacity-30"/>
+            <img src="/images/family-why-choose-us.jpg" alt="Doctor showing information on a tablet" className="w-full h-full object-cover opacity-30"/>
             <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/70 to-transparent"></div>
         </div>
         <div className="container mx-auto px-6 text-center relative z-10">
@@ -606,17 +606,51 @@ const HomePage = ({ onQuoteClick, onAgentContact, onApplyClick, onSeeAllReviews,
 const PlansPage = ({ onGoHome }: { onGoHome: () => void }) => {
     const { t } = useLanguage();
     const [form, setForm] = useState({
-        market: 'Individual', state: '', zipcode: '', countyfips: '', year: new Date().getFullYear(), ages: '', effective_date: ''
+        market: 'Individual', state: '', zipcode: '', countyfips: '', year: new Date().getFullYear(), ages: '', effective_date: '', income: '' as any
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [results, setResults] = useState<any | null>(null);
+    const [fipsLoading, setFipsLoading] = useState(false);
+    const [fipsError, setFipsError] = useState<string | null>(null);
+    const [detailsOpen, setDetailsOpen] = useState(false);
+    const [detailsLoading, setDetailsLoading] = useState(false);
+    const [detailsError, setDetailsError] = useState<string | null>(null);
+    const [planDetails, setPlanDetails] = useState<any | null>(null);
+    const [planSummary, setPlanSummary] = useState<any | null>(null);
 
     useEffect(() => { window.scrollTo(0, 0); }, []);
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target; setForm(prev => ({ ...prev, [name]: value }));
     };
+
+    // Auto completar countyfips cuando haya ZIP + state
+    useEffect(() => {
+        setFipsError(null);
+        const s = form.state.trim().toUpperCase();
+        const z = form.zipcode.trim();
+        if (!s || z.length < 5) return; // esperar ZIP válido
+        const ctrl = new AbortController();
+        const timer = setTimeout(async () => {
+            try {
+                setFipsLoading(true);
+                const u = `/api/geo/countyfips?state=${encodeURIComponent(s)}&zipcode=${encodeURIComponent(z)}`;
+                const resp = await fetch(u, { signal: ctrl.signal });
+                const json = await resp.json();
+                if (resp.ok && json.success && json.data?.countyfips) {
+                    setForm(prev => ({ ...prev, countyfips: json.data.countyfips }));
+                } else if (!resp.ok) {
+                    setFipsError(typeof json.error === 'string' ? json.error : 'No se pudo obtener County FIPS');
+                }
+            } catch (e: any) {
+                if (e?.name !== 'AbortError') setFipsError('No se pudo obtener County FIPS');
+            } finally {
+                setFipsLoading(false);
+            }
+        }, 500);
+        return () => { clearTimeout(timer); ctrl.abort(); };
+    }, [form.state, form.zipcode]);
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); setLoading(true); setError(null); setResults(null);
@@ -631,6 +665,7 @@ const PlansPage = ({ onGoHome }: { onGoHome: () => void }) => {
             if (form.countyfips.trim()) body.countyfips = form.countyfips.trim();
             if (agesArray.length) body.ages = agesArray;
             if (form.effective_date.trim()) body.effective_date = form.effective_date.trim();
+            if (form.income && String(form.income).trim()) body.income = Number(form.income);
             const resp = await fetch('/api/marketplace/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             const json = await resp.json();
             if (!resp.ok || !json.success) throw new Error(typeof json.error === 'string' ? json.error : 'Search failed');
@@ -639,6 +674,29 @@ const PlansPage = ({ onGoHome }: { onGoHome: () => void }) => {
             setError(err?.message || 'Error');
         } finally { setLoading(false); }
     };
+
+    const openDetails = async (planId: string) => {
+        setDetailsOpen(true);
+        setDetailsLoading(true);
+        setDetailsError(null);
+        setPlanDetails(null);
+        // Capturar el plan del resumen para mostrar primas estimadas
+        const found = results && Array.isArray(results.plans) ? results.plans.find((p: any) => (p.plan_id || p.id) === planId) : null;
+        setPlanSummary(found || null);
+        try {
+            const q = new URLSearchParams();
+            if (form.year) q.set('year', String(form.year));
+            const resp = await fetch(`/api/marketplace/plans/${encodeURIComponent(planId)}?${q.toString()}`);
+            const json = await resp.json();
+            if (!resp.ok || !json.success) throw new Error(typeof json.error === 'string' ? json.error : 'No se pudo cargar el plan');
+            setPlanDetails(json.data);
+        } catch (e: any) {
+            setDetailsError(e?.message || 'Error');
+        } finally {
+            setDetailsLoading(false);
+        }
+    };
+    const closeDetails = () => { setDetailsOpen(false); setPlanDetails(null); setDetailsError(null); };
 
     return (
         <div className="py-16 bg-white">
@@ -664,8 +722,12 @@ const PlansPage = ({ onGoHome }: { onGoHome: () => void }) => {
                         <input name="zipcode" value={form.zipcode} onChange={onChange} required className="w-full border rounded px-3 py-2" />
                     </div>
                     <div>
-                        <label className="block text-sm text-gray-700 mb-1">{t.plans_countyfips || 'County FIPS (optional)'}</label>
-                        <input name="countyfips" value={form.countyfips} onChange={onChange} className="w-full border rounded px-3 py-2" />
+                        <label className="block text-sm text-gray-700 mb-1">{t.plans_countyfips || 'County FIPS (opcional)'}</label>
+                        <div className="flex items-center gap-2">
+                            <input name="countyfips" value={form.countyfips} onChange={onChange} className="w-full border rounded px-3 py-2" />
+                            {fipsLoading && <span className="text-xs text-gray-500">Buscando...</span>}
+                        </div>
+                        {fipsError && <div className="text-xs text-red-600 mt-1">{fipsError}</div>}
                     </div>
                     <div>
                         <label className="block text-sm text-gray-700 mb-1">{t.plans_year || 'Year'}</label>
@@ -674,6 +736,10 @@ const PlansPage = ({ onGoHome }: { onGoHome: () => void }) => {
                     <div>
                         <label className="block text-sm text-gray-700 mb-1">{t.plans_ages || 'Ages'}</label>
                         <input name="ages" value={form.ages} onChange={onChange} placeholder="27, 39" className="w-full border rounded px-3 py-2" />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-gray-700 mb-1">{t.plans_income || 'Ingreso anual (opcional)'}</label>
+                        <input name="income" type="number" value={form.income} onChange={onChange} placeholder="35000" className="w-full border rounded px-3 py-2" />
                     </div>
                     <div className="md:col-span-3">
                         <label className="block text-sm text-gray-700 mb-1">{t.plans_effective_date || 'Effective date'}</label>
@@ -700,7 +766,7 @@ const PlansPage = ({ onGoHome }: { onGoHome: () => void }) => {
                                         <div className="text-sm text-gray-700">Metal: {p.metal_level || p.metal || '-'}</div>
                                         <div className="text-sm text-gray-700">Type: {p.plan_type || '-'}</div>
                                         <div className="mt-3">
-                                            <a href="#" onClick={(e) => { e.preventDefault(); }} className="text-brand-blue hover:underline">{t.plans_view_details || 'View details'}</a>
+                                            <a href="#" onClick={(e) => { e.preventDefault(); openDetails(p.plan_id || p.id); }} className="text-brand-blue hover:underline">{t.plans_view_details || 'Ver detalles'}</a>
                                         </div>
                                     </div>
                                 ))}
@@ -708,6 +774,58 @@ const PlansPage = ({ onGoHome }: { onGoHome: () => void }) => {
                         ) : (
                             <div className="text-gray-600">{t.plans_no_results || 'No plans found.'}</div>
                         )}
+                    </div>
+                )}
+
+                {detailsOpen && (
+                    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+                        <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-auto">
+                            <div className="p-4 border-b flex items-center justify-between">
+                                <h3 className="text-lg font-semibold">{t.plans_details_title || 'Detalles del plan'}</h3>
+                                <button onClick={closeDetails} className="text-gray-500 hover:text-gray-700" aria-label="Cerrar">✕</button>
+                            </div>
+                            <div className="p-4">
+                                {detailsLoading && <div className="text-sm text-gray-600">{t.plans_loading || 'Buscando...'}</div>}
+                                {detailsError && <div className="text-sm text-red-600">{detailsError}</div>}
+                                {planDetails && (
+                                    <div className="space-y-2 text-sm">
+                                        <div><span className="font-semibold">Nombre:</span> {planDetails.plan_name || planDetails.marketing_name || '-'}</div>
+                                        <div><span className="font-semibold">Aseguradora:</span> {planDetails.issuer_name || planDetails.issuer || '-'}</div>
+                                        <div><span className="font-semibold">Metal:</span> {planDetails.metal_level || planDetails.metal || '-'}</div>
+                                        <div><span className="font-semibold">Tipo:</span> {planDetails.plan_type || '-'}</div>
+                                        {/* Estimaciones desde el resumen si existen */}
+                                        {planSummary && (
+                                            <div className="mt-3 p-3 bg-blue-50 rounded">
+                                                <div className="font-semibold mb-1">Estimación de costos</div>
+                                                {planSummary.net_premium !== undefined && <div>Prima neta estimada: {planSummary.net_premium}</div>}
+                                                {planSummary.premium !== undefined && <div>Prima bruta estimada: {planSummary.premium}</div>}
+                                                {planSummary.monthly_premium !== undefined && <div>Prima mensual: {planSummary.monthly_premium}</div>}
+                                                {planSummary.aptc !== undefined && <div>Crédito fiscal (APTC): {planSummary.aptc}</div>}
+                                                {planSummary.csr !== undefined && <div>CSR: {planSummary.csr}</div>}
+                                                {!('net_premium' in (planSummary||{})) && !('premium' in (planSummary||{})) && <div className="text-gray-600 text-xs">No hay valores de prima en los resultados; ajusta edades/ingreso para ver estimados.</div>}
+                                            </div>
+                                        )}
+                                        {planDetails.premium && <div><span className="font-semibold">Prima (detalle):</span> {planDetails.premium}</div>}
+                                        {planDetails.deductible && <div><span className="font-semibold">Deducible:</span> {planDetails.deductible}</div>}
+                                        {planDetails.out_of_pocket_max && <div><span className="font-semibold">Máximo de bolsillo:</span> {planDetails.out_of_pocket_max}</div>}
+                                        {/* Renderiza más campos si existen */}
+                                        {planDetails.benefits && Array.isArray(planDetails.benefits) && (
+                                            <div>
+                                                <div className="font-semibold mb-1">Beneficios:</div>
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    {planDetails.benefits.map((b: any, i: number) => (
+                                                        <li key={i}>{b.name || b.benefit || JSON.stringify(b)}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-4 border-t flex justify-end">
+                                <button onClick={closeDetails} className="px-4 py-2 rounded bg-brand-blue text-white hover:bg-blue-700">{t.close || 'Cerrar'}</button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -811,8 +929,21 @@ export default function App() {
   
     const handleNavClick = (pageId: string, anchor?: string) => {
         if (pageId === 'login') {
+            // Sincroniza hash para que abrir en nueva pestaña funcione
+            if (window?.location) window.location.hash = '#login';
             setRoute({ view: 'login', page: 'login' });
             return;
+        }
+
+        // Actualiza hash cuando cambiamos de página pública
+        if (pageId === 'home') {
+            if (anchor) {
+                if (window?.location) window.location.hash = anchor; // e.g. #services
+            } else {
+                if (window?.location) window.location.hash = '#home';
+            }
+        } else {
+            if (window?.location) window.location.hash = `#${pageId}`;
         }
 
         setRoute({ view: 'public', page: pageId });
@@ -825,6 +956,48 @@ export default function App() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
+
+    // Lee el hash al cargar y en cambios de hash para soportar abrir enlaces en nueva pestaña (#plans, #reviews, #<serviceId>, etc.)
+    useEffect(() => {
+        const applyHashRoute = () => {
+            const raw = (window?.location?.hash || '').replace(/^#/, '');
+            const h = decodeURIComponent(raw || '').trim();
+            if (!h) return; // deja el estado por defecto
+
+            // Login directo
+            if (h.toLowerCase() === 'login') {
+                setRoute({ view: 'login', page: 'login' });
+                return;
+            }
+            // Páginas públicas conocidas
+            const knownPages = new Set(['home', 'plans', 'reviews', 'application']);
+            if (knownPages.has(h)) {
+                setRoute({ view: 'public', page: h });
+                return;
+            }
+            // Sección dentro de home (anclas)
+            if (['services', 'about', 'agents', 'carriers', 'reviews'].includes(h)) {
+                setRoute({ view: 'public', page: 'home' });
+                // desplaza suavemente a la sección
+                setTimeout(() => {
+                    document.querySelector(`#${h}`)?.scrollIntoView({ behavior: 'smooth' });
+                }, 50);
+                return;
+            }
+            // Si coincide con un ID de servicio, abre la página de ese servicio
+            const svc = services.find(s => s.id === h);
+            if (svc) {
+                setRoute({ view: 'public', page: h });
+                return;
+            }
+            // Fallback
+            setRoute({ view: 'public', page: 'home' });
+        };
+
+        applyHashRoute();
+        window.addEventListener('hashchange', applyHashRoute);
+        return () => window.removeEventListener('hashchange', applyHashRoute);
+    }, [services]);
     
     const renderAdminContent = () => {
         switch (route.page) {
