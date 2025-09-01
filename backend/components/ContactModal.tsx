@@ -4,11 +4,13 @@ import { useData } from '../contexts/DataContext';
 import Logo from './Logo';
 
 interface ContactModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+    isOpen: boolean;
+    onClose: () => void;
+    initialMessage?: string;
+    initialSource?: string;
 }
 
-const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
+const ContactModal = ({ isOpen, onClose, initialMessage, initialSource }: ContactModalProps) => {
     const { t } = useLanguage();
     const { addLead } = useData();
     const [isVisible, setIsVisible] = useState(false);
@@ -109,7 +111,7 @@ const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                         </div>
                         <div>
                             <label htmlFor="modal-source" className="block text-sm font-medium text-gray-700 mb-1">{t.form_how_did_you_hear}</label>
-                            <select id="modal-source" name="source" required className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
+                            <select id="modal-source" name="source" required defaultValue={initialSource || ''} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
                                 <option value="">{t.app_select}</option>
                                 <option value="Website">Website</option>
                                 <option value="Referral">Referral</option>
@@ -121,7 +123,7 @@ const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                         </div>
                         <div>
                             <label htmlFor="modal-message" className="block text-sm font-medium text-gray-700 mb-1">{t.form_message_label}</label>
-                            <textarea id="modal-message" name="message" rows={3} required className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue"></textarea>
+                            <textarea id="modal-message" name="message" rows={3} required defaultValue={initialMessage || ''} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue"></textarea>
                         </div>
                         <div>
                             <button type="submit" className="w-full bg-brand-orange text-white px-8 py-3 rounded-md font-bold text-lg hover:bg-orange-600 transition-all transform hover:scale-105 shadow-lg">
