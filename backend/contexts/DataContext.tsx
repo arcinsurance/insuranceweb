@@ -102,7 +102,20 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         phone: appData.phone || '',
         serviceOfInterest: appData.serviceOfInterest || 'General Inquiry',
     };
+    // Actualiza UI primero
     setAppointments(prev => [newAppointment, ...prev]);
+    // Enviar notificación por email en background (no bloquea UI)
+    fetch('/api/send-appointment-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appointment: newAppointment })
+    }).then(async (res) => {
+      if (!res.ok) {
+        console.error('Email de cita falló:', await res.json().catch(() => ({})));
+      }
+    }).catch(err => {
+      console.error('Error llamando email de cita:', err);
+    });
   };
 
   const addService = (newService: ServiceItem) => {
