@@ -1,0 +1,3 @@
+/* Minimal CSS placeholder to avoid 404 in dev */
+:root { --brand-blue:#2563EB; --brand-orange:#F97316; --brand-green:#16A34A; --brand-dark:#111827; --brand-light:#F9FAFB; }
+body { background: var(--brand-light); }
