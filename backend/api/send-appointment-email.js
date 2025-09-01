@@ -46,9 +46,11 @@ async function handler(req, res) {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.CENTRAL_EMAIL_ADDRESS) {
-    console.error('Faltan variables de entorno SMTP (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, CENTRAL_EMAIL_ADDRESS)');
-    return res.status(500).json({ success: false, error: 'Error de configuración del servidor (SMTP).' });
+  const hasSMTP = !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS);
+  const hasGmail = !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+  if (!process.env.CENTRAL_EMAIL_ADDRESS || (!hasSMTP && !hasGmail)) {
+    console.error('Faltan variables de entorno: CENTRAL_EMAIL_ADDRESS y (SMTP_* o GMAIL_*).');
+    return res.status(500).json({ success: false, error: 'Error de configuración del servidor (email).' });
   }
 
   const { appointment } = req.body || {};
@@ -56,25 +58,36 @@ async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'Falta el objeto appointment en el cuerpo.' });
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT, 10),
-    secure: process.env.SMTP_PORT == '465',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
-
+  let transporter;
+  let fromAddress;
   try {
-    await transporter.verify();
+    if (hasSMTP) {
+      transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT, 10),
+        secure: String(process.env.SMTP_PORT) === '465',
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      });
+      fromAddress = process.env.SMTP_USER;
+      await transporter.verify();
+    } else {
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+      });
+      fromAddress = process.env.GMAIL_USER;
+      try { await transporter.verify(); } catch (_) {}
+    }
   } catch (verr) {
-    console.error('SMTP verify failed (appointment):', verr?.message || verr);
-    return res.status(500).json({ success: false, error: 'SMTP verification failed.' });
+    console.error('Email transporter verify failed (appointment):', verr?.message || verr);
+    return res.status(500).json({ success: false, error: 'Email transporter verification failed.' });
   }
 
   const mailOptions = {
-    from: `"Web Leads System" <${process.env.SMTP_USER}>`,
+    from: `"Web Leads System" <${fromAddress}>`,
     to: process.env.CENTRAL_EMAIL_ADDRESS,
     subject: `Nueva cita: ${appointment.name || 'Cliente'}`,
-  replyTo: appointment.email ? `${appointment.name || 'Cliente'} <${appointment.email}>` : undefined,
+    replyTo: appointment.email ? `${appointment.name || 'Cliente'} <${appointment.email}>` : undefined,
     html: createAppointmentTemplate(appointment),
   };
 

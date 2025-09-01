@@ -1,4 +1,4 @@
-// Using CommonJS require for wider compatibility in serverless environments
+// Using CommonJS require for compatibility with Express runtime
 const nodemailer = require('nodemailer');
 
 const createEmailTemplate = (lead, type) => {
@@ -58,49 +58,54 @@ const createEmailTemplate = (lead, type) => {
 };
 
 
-// The handler function for the serverless environment (e.g., Render, Vercel)
+// Hybrid handler: supports SMTP_* or Gmail (GMAIL_USER/GMAIL_APP_PASSWORD)
 async function handler(req, res) {
-  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  // Check for essential environment variables
-  if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.CENTRAL_EMAIL_ADDRESS) {
-      console.error('Missing required SMTP environment variables for email functionality.');
-      // Avoid leaking internal configuration details to the client
-      return res.status(500).json({ success: false, error: 'Internal server configuration error.' });
-  }
-
-  const { lead, agents } = req.body;
-
-  // Validate the incoming payload
+  const { lead, agents } = req.body || {};
   if (!lead || !agents) {
     return res.status(400).json({ success: false, error: 'Missing lead or agents data in request body.' });
   }
 
-  // Configure the Nodemailer transporter using explicit SMTP
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT, 10),
-    secure: process.env.SMTP_PORT == '465', // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
-  // Optional: verify SMTP before sending to catch auth/connectivity issues early
-  try {
-    await transporter.verify();
-  } catch (verr) {
-    console.error('SMTP verify failed:', verr?.message || verr);
-    return res.status(500).json({ success: false, error: 'SMTP verification failed.' });
+  // Decide config mode
+  const hasSMTP = !!(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS);
+  const hasGmail = !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+  if (!process.env.CENTRAL_EMAIL_ADDRESS || (!hasSMTP && !hasGmail)) {
+    console.error('Email config missing. Need CENTRAL_EMAIL_ADDRESS and either SMTP_* or GMAIL_* envs.');
+    return res.status(500).json({ success: false, error: 'Server email configuration error.' });
   }
 
-  // Prepare the email for the central inbox
+  // Build transporter
+  let transporter;
+  let fromAddress;
+  try {
+    if (hasSMTP) {
+      transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT, 10),
+        secure: String(process.env.SMTP_PORT) === '465',
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      });
+      fromAddress = process.env.SMTP_USER;
+      await transporter.verify();
+    } else {
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+      });
+      fromAddress = process.env.GMAIL_USER;
+      // Verify is optional for Gmail but helps surface auth issues
+      try { await transporter.verify(); } catch (_) {}
+    }
+  } catch (e) {
+    console.error('Transporter setup/verify failed:', e?.message || e);
+    return res.status(500).json({ success: false, error: 'Email transporter failed.' });
+  }
+
   const centralMailOptions = {
-    from: `"Web Leads System" <${process.env.SMTP_USER}>`,
+    from: `"Web Leads System" <${fromAddress}>`,
     to: process.env.CENTRAL_EMAIL_ADDRESS,
     subject: `New Lead (${lead.type}): ${lead.name}`,
     replyTo: lead.email ? `${lead.name} <${lead.email}>` : undefined,
@@ -108,36 +113,33 @@ async function handler(req, res) {
   };
 
   try {
-    // Send the email to the central address
     await transporter.sendMail(centralMailOptions);
 
-  // If it's an agent-specific lead, find the agent (robust match) and send a second email
-  const isAgentLead = String(lead.type || '').toLowerCase() === 'agent';
-  if (isAgentLead && lead.target) {
-    const targetLower = String(lead.target).toLowerCase().trim();
-    const targetAgent = Array.isArray(agents) ? agents.find(agent => {
-      const byName = String(agent.name || '').toLowerCase().trim() === targetLower;
-      const byEmail = String(agent.email || '').toLowerCase().trim() === targetLower;
-      const byNpn = String(agent.npn || '').toLowerCase().trim() === targetLower;
-      return byName || byEmail || byNpn;
-    }) : null;
-    if (targetAgent && targetAgent.email) {
-      const agentMailOptions = {
-        from: `"Lead Notification" <${process.env.SMTP_USER}>`,
-        to: targetAgent.email,
-        subject: `You have a new lead: ${lead.name}`,
-        replyTo: lead.email ? `${lead.name} <${lead.email}>` : undefined,
-        html: createEmailTemplate(lead, 'agent'),
-      };
-      await transporter.sendMail(agentMailOptions);
+    // Agent notification (robust matching by name/email/npn)
+    const isAgentLead = String(lead.type || '').toLowerCase() === 'agent';
+    if (isAgentLead && lead.target) {
+      const targetLower = String(lead.target).toLowerCase().trim();
+      const targetAgent = Array.isArray(agents) ? agents.find(agent => {
+        const byName = String(agent.name || '').toLowerCase().trim() === targetLower;
+        const byEmail = String(agent.email || '').toLowerCase().trim() === targetLower;
+        const byNpn = String(agent.npn || '').toLowerCase().trim() === targetLower;
+        return byName || byEmail || byNpn;
+      }) : null;
+      if (targetAgent && targetAgent.email) {
+        const agentMailOptions = {
+          from: `"Lead Notification" <${fromAddress}>`,
+          to: targetAgent.email,
+          subject: `You have a new lead: ${lead.name}`,
+          replyTo: lead.email ? `${lead.name} <${lead.email}>` : undefined,
+          html: createEmailTemplate(lead, 'agent'),
+        };
+        await transporter.sendMail(agentMailOptions);
+      }
     }
-  }
-    
-    // Respond with success
-    return res.status(200).json({ success: true });
 
+    return res.status(200).json({ success: true });
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error sending lead email(s):', error);
     return res.status(500).json({ success: false, error: 'Failed to send email due to a server error.' });
   }
 }
