@@ -90,11 +90,20 @@ async function handler(req, res) {
     },
   });
 
+  // Optional: verify SMTP before sending to catch auth/connectivity issues early
+  try {
+    await transporter.verify();
+  } catch (verr) {
+    console.error('SMTP verify failed:', verr?.message || verr);
+    return res.status(500).json({ success: false, error: 'SMTP verification failed.' });
+  }
+
   // Prepare the email for the central inbox
   const centralMailOptions = {
     from: `"Web Leads System" <${process.env.SMTP_USER}>`,
     to: process.env.CENTRAL_EMAIL_ADDRESS,
     subject: `New Lead (${lead.type}): ${lead.name}`,
+    replyTo: lead.email ? `${lead.name} <${lead.email}>` : undefined,
     html: createEmailTemplate(lead, 'central'),
   };
 
@@ -102,14 +111,22 @@ async function handler(req, res) {
     // Send the email to the central address
     await transporter.sendMail(centralMailOptions);
 
-  // If it's an agent-specific lead, find the agent and send a second email
-  if (lead.type === 'Agent' && lead.target) {
-    const targetAgent = agents.find(agent => agent.name === lead.target);
+  // If it's an agent-specific lead, find the agent (robust match) and send a second email
+  const isAgentLead = String(lead.type || '').toLowerCase() === 'agent';
+  if (isAgentLead && lead.target) {
+    const targetLower = String(lead.target).toLowerCase().trim();
+    const targetAgent = Array.isArray(agents) ? agents.find(agent => {
+      const byName = String(agent.name || '').toLowerCase().trim() === targetLower;
+      const byEmail = String(agent.email || '').toLowerCase().trim() === targetLower;
+      const byNpn = String(agent.npn || '').toLowerCase().trim() === targetLower;
+      return byName || byEmail || byNpn;
+    }) : null;
     if (targetAgent && targetAgent.email) {
       const agentMailOptions = {
         from: `"Lead Notification" <${process.env.SMTP_USER}>`,
         to: targetAgent.email,
         subject: `You have a new lead: ${lead.name}`,
+        replyTo: lead.email ? `${lead.name} <${lead.email}>` : undefined,
         html: createEmailTemplate(lead, 'agent'),
       };
       await transporter.sendMail(agentMailOptions);
