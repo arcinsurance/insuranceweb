@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Logo from './components/Logo';
 import { CARRIERS, REVIEWS, SERVICE_ICONS, FEATURE_ICONS } from './constants';
 import { ServiceItem, Agent, Review, KeyFeature } from './types';
-import AIAssistant from './components/AIAssistant';
 import { useLanguage } from './contexts/LanguageContext';
 import { useData } from './contexts/DataContext';
 import LanguageSwitcher from './components/LanguageSwitcher';
@@ -65,7 +64,7 @@ const Header = ({ onQuoteClick, onAppointmentClick, onNavClick, onMobileMenuTogg
           </div>
           <a href="#about" onClick={(e) => { e.preventDefault(); onNavClick('home', '#about'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_about}</a>
           <a href="#agents" onClick={(e) => { e.preventDefault(); onNavClick('home', '#agents'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_agents}</a>
-          {/* En producción ocultamos la navegación al Marketplace/Planes */}
+          {/* */}
           {/* <a href="/#plans" onClick={(e) => { e.preventDefault(); onNavClick('plans'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_view_plans || 'View plans'}</a> */}
           <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('login'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_agent_login}</a>
           <button onClick={onAppointmentClick} className="text-gray-600 hover:text-brand-blue transition-colors font-medium">
@@ -120,7 +119,7 @@ const MobileMenu = ({ isOpen, onClose, onNavClick, onQuoteClick, onAppointmentCl
                     <hr className="my-4"/>
                      <a href="#about" onClick={(e) => { e.preventDefault(); onNavClick('home', '#about'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_about}</a>
                      <a href="#agents" onClick={(e) => { e.preventDefault(); onNavClick('home', '#agents'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_agents}</a>
-                    {/* En producción ocultamos la navegación al Marketplace/Planes */}
+                    {/* */}
                     {/* <a href="/#plans" onClick={(e) => { e.preventDefault(); onNavClick('plans'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_view_plans || 'View plans'}</a> */}
                      
                     <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('login'); onClose(); }} className="text-left text-gray-700 hover:text-brand-blue py-2">{t.nav_agent_login}</a>
@@ -604,7 +603,7 @@ const HomePage = ({ onQuoteClick, onAgentContact, onApplyClick, onSeeAllReviews,
     );
 };
 
-// Plans page removed
+//
 
 
 const Footer = () => {
@@ -730,7 +729,7 @@ export default function App() {
         }
     };
 
-    // Lee el hash al cargar y en cambios de hash para soportar abrir enlaces en nueva pestaña (#plans, #reviews, #<serviceId>, etc.)
+    // Lee el hash al cargar y en cambios de hash para soportar abrir enlaces en nueva pestaña (#reviews, #<serviceId>, etc.)
     useEffect(() => {
         const applyHashRoute = () => {
             const raw = (window?.location?.hash || '').replace(/^#/, '');
@@ -792,7 +791,7 @@ export default function App() {
         if (route.page === 'reviews') {
             return <ReviewsPage onGoHome={() => setRoute({ view: 'public', page: 'home' })} />;
         }
-    // plans route removed
+    //
         const currentService = services.find(s => s.id === route.page);
         if (currentService) {
             return <ServicePage service={currentService} onGoHome={() => setRoute({ view: 'public', page: 'home' })} />;
