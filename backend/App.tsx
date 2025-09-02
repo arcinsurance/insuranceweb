@@ -1,3 +1,5 @@
+import './src/index.css';
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import Logo from './components/Logo';
 import { CARRIERS, REVIEWS, SERVICE_ICONS, FEATURE_ICONS } from './constants';
@@ -22,206 +24,169 @@ import AppointmentModal from './components/AppointmentModal';
 
 // Keep public components here
 const Header = ({ onQuoteClick, onAppointmentClick, onNavClick, onMobileMenuToggle }: { onQuoteClick: () => void, onAppointmentClick: () => void, onNavClick: (pageId: string, anchor?: string) => void, onMobileMenuToggle: () => void }) => {
-  const { t, language } = useLanguage();
-  const { services } = useData();
-  const [isServicesOpen, setIsServicesOpen] = useState(false);
-  let servicesMenuTimeout: number;
-
-  const handleMouseEnter = () => {
-    clearTimeout(servicesMenuTimeout);
-    setIsServicesOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    servicesMenuTimeout = window.setTimeout(() => {
-      setIsServicesOpen(false);
-    }, 200);
-  };
-
-  return (
-    <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 shadow-sm">
-      <div className="container mx-auto px-6 py-3 flex justify-between items-center">
-        <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('home'); }} className="flex items-center space-x-3 cursor-pointer">
-          <Logo className="h-12 w-12" />
-          <div>
-              <h1 className="text-xl font-bold text-brand-blue">INSURANCE</h1>
-              <p className="text-sm font-semibold text-brand-orange -mt-1">MULTISERVICES</p>
-          </div>
-        </a>
-        <nav className="hidden md:flex space-x-8 items-center">
-          <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-              <a href="#services" onClick={(e) => { e.preventDefault(); onNavClick('home', '#services'); }} className="text-gray-600 hover:text-brand-blue transition-colors flex items-center">
-                {t.nav_services}
-                <svg className={`w-4 h-4 ml-1 transition-transform ${isServicesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-              </a>
-              {isServicesOpen && (
-                <div className="absolute top-full left-0 mt-0 pt-2 w-56 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5">
-                    {services.map(service => (
-                        <a key={service.id} href={`#${service.id}`} onClick={(e) => { e.preventDefault(); onNavClick(service.id); setIsServicesOpen(false); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{service.title[language]}</a>
-                    ))}
-                </div>
-              )}
-          </div>
-          <a href="#about" onClick={(e) => { e.preventDefault(); onNavClick('home', '#about'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_about}</a>
-          <a href="#agents" onClick={(e) => { e.preventDefault(); onNavClick('home', '#agents'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_agents}</a>
-          {/* */}
-          {/* <a href="/#plans" onClick={(e) => { e.preventDefault(); onNavClick('plans'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_view_plans || 'View plans'}</a> */}
-          <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('login'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_agent_login}</a>
-          <button onClick={onAppointmentClick} className="text-gray-600 hover:text-brand-blue transition-colors font-medium">
-            {t.schedule_appointment}
-          </button>
-          <button onClick={onQuoteClick} className="bg-brand-orange text-white px-5 py-2 rounded-full font-semibold hover:bg-orange-600 transition-all transform hover:scale-105">
-            {t.get_a_quote}
-          </button>
-          <LanguageSwitcher />
-        </nav>
-        <div className="md:hidden flex items-center space-x-4">
-            <LanguageSwitcher />
-            <button onClick={onMobileMenuToggle} className="text-gray-600 hover:text-brand-blue" aria-label="Open navigation menu">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
-              </svg>
-            </button>
-        </div>
-      </div>
-    </header>
-  );
-};
-
-const MobileMenu = ({ isOpen, onClose, onNavClick, onQuoteClick, onAppointmentClick }: { isOpen: boolean, onClose: () => void, onNavClick: (pageId: string, anchor?: string) => void, onQuoteClick: () => void, onAppointmentClick: () => void }) => {
     const { t, language } = useLanguage();
     const { services } = useData();
-    
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'auto';
-        }
-        return () => { document.body.style.overflow = 'auto'; };
-    }, [isOpen]);
+    const [isServicesOpen, setIsServicesOpen] = useState(false);
+    let servicesMenuTimeout: number;
+
+    const handleMouseEnter = () => {
+        clearTimeout(servicesMenuTimeout);
+        setIsServicesOpen(true);
+    };
+
+    const handleMouseLeave = () => {
+        servicesMenuTimeout = window.setTimeout(() => {
+            setIsServicesOpen(false);
+        }, 200);
+    };
 
     return (
-        <div className={`fixed inset-0 z-40 md:hidden transition-opacity duration-300 ${isOpen ? 'bg-black bg-opacity-50' : 'opacity-0 pointer-events-none'}`} onClick={onClose}>
-            <div className={`fixed top-0 right-0 h-full w-72 bg-white shadow-lg p-6 transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`} onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-lg font-semibold">{t.nav_services}</h2>
-                    <button onClick={onClose} aria-label={t.mobile_menu_close}>
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 shadow-sm">
+            <div className="container mx-auto px-6 py-3 flex justify-between items-center">
+                <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('home'); }} className="flex items-center space-x-3 cursor-pointer">
+                    <Logo className="h-12 w-12" />
+                    <div>
+                        <h1 className="text-xl font-bold text-brand-blue">INSURANCE</h1>
+                        <p className="text-sm font-semibold text-brand-orange -mt-1">MULTISERVICES</p>
+                    </div>
+                </a>
+                <nav className="hidden md:flex space-x-8 items-center">
+                    <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                        <a href="#services" onClick={(e) => { e.preventDefault(); onNavClick('home', '#services'); }} className="text-gray-600 hover:text-brand-blue transition-colors flex items-center">
+                            {t.nav_services || 'Services'}
+                            <svg className={`w-4 h-4 ml-1 transition-transform ${isServicesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </a>
+                        {isServicesOpen && (
+                            <div className="absolute top-full left-0 mt-0 pt-2 w-56 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-40">
+                                {services.map(service => (
+                                    <a key={service.id} href={`#${service.id}`} onClick={(e) => { e.preventDefault(); onNavClick(service.id); setIsServicesOpen(false); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{service.title[language]}</a>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <a href="#about" onClick={(e) => { e.preventDefault(); onNavClick('home', '#about'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_about || 'About'}</a>
+                    <a href="#agents" onClick={(e) => { e.preventDefault(); onNavClick('home', '#agents'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_agents || 'Agents'}</a>
+                    {/* */}
+                    <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('login'); }} className="text-gray-600 hover:text-brand-blue transition-colors">{t.nav_agent_login || 'Agent Login'}</a>
+                    <button onClick={onAppointmentClick} className="text-gray-600 hover:text-brand-blue transition-colors font-medium">
+                        {t.schedule_appointment || 'Schedule appointment'}
+                    </button>
+                    <button onClick={onQuoteClick} className="bg-brand-orange text-white px-5 py-2 rounded-full font-semibold hover:bg-orange-600 transition-all transform hover:scale-105">
+                        {t.get_a_quote}
+                    </button>
+                    <LanguageSwitcher />
+                </nav>
+                <div className="md:hidden flex items-center space-x-4">
+                    <LanguageSwitcher />
+                    <button onClick={onMobileMenuToggle} className="text-gray-600 hover:text-brand-blue" aria-label="Open navigation menu">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
                         </svg>
                     </button>
                 </div>
-                <nav className="flex flex-col space-y-4">
-                    {services.map(service => (
-                        <a key={service.id} href={`#${service.id}`} onClick={(e) => { e.preventDefault(); onNavClick(service.id); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{service.title[language]}</a>
-                    ))}
-                    <hr className="my-4"/>
-                     <a href="#about" onClick={(e) => { e.preventDefault(); onNavClick('home', '#about'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_about}</a>
-                     <a href="#agents" onClick={(e) => { e.preventDefault(); onNavClick('home', '#agents'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_agents}</a>
-                    {/* */}
-                    {/* <a href="/#plans" onClick={(e) => { e.preventDefault(); onNavClick('plans'); onClose(); }} className="text-gray-700 hover:text-brand-blue py-2">{t.nav_view_plans || 'View plans'}</a> */}
-                     
-                    <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('login'); onClose(); }} className="text-left text-gray-700 hover:text-brand-blue py-2">{t.nav_agent_login}</a>
-
-                     <button onClick={() => { onAppointmentClick(); onClose(); }} className="w-full bg-brand-blue text-white mt-4 px-5 py-3 rounded-full font-semibold hover:bg-blue-700 transition-all">
-                        {t.schedule_appointment}
-                    </button>
-                    <button onClick={() => { onQuoteClick(); onClose(); }} className="w-full bg-brand-orange text-white mt-2 px-5 py-3 rounded-full font-semibold hover:bg-orange-600 transition-all">
-                        {t.get_a_quote}
-                    </button>
-                </nav>
             </div>
-        </div>
+        </header>
     );
 };
 
+// Minimal hero section
 const Hero = ({ onQuoteClick }: { onQuoteClick: () => void }) => {
-  const { t } = useLanguage();
-  return (
-    <section className="relative text-white py-24 md:py-32 bg-brand-dark">
-        <div className="absolute inset-0">
-            <img src="/images/family-why-choose-us.jpg" alt="Doctor showing information on a tablet" className="w-full h-full object-cover opacity-30"/>
-            <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/70 to-transparent"></div>
-        </div>
-        <div className="container mx-auto px-6 text-center relative z-10">
-            <h2 className="text-4xl md:text-6xl font-extrabold leading-tight tracking-tight mb-4">{t.hero_title}</h2>
-            <p className="text-lg md:text-xl max-w-3xl mx-auto mb-8 text-gray-300">
-                {t.hero_subtitle}
-            </p>
-            <button onClick={onQuoteClick} className="bg-brand-blue text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-blue-700 transition-all transform hover:scale-105 inline-block shadow-lg">
-                {t.hero_cta}
-            </button>
-        </div>
-    </section>
-  );
-};
-
-const ServiceCard = ({ service, onClick }: { service: ServiceItem, onClick: () => void }) => {
-    const { language } = useLanguage();
-    const { title, description, brandColor, icon } = service;
-
-    const colorClasses = {
-        blue: { bg: 'bg-blue-100', text: 'text-brand-blue' },
-        orange: { bg: 'bg-orange-100', text: 'text-brand-orange' },
-        green: { bg: 'bg-green-100', text: 'text-brand-green' },
-    };
-    const selectedColor = colorClasses[brandColor];
-    
-    const IconComponent = SERVICE_ICONS[icon] || SERVICE_ICONS.default;
-
     return (
-        <div onClick={onClick} className="bg-white rounded-xl shadow-lg p-8 flex flex-col items-center text-center hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group">
-            <div className={`${selectedColor.bg} p-4 rounded-full mb-6 transition-transform group-hover:scale-110`}>
-                <IconComponent className={selectedColor.text} />
+        <section className="bg-gradient-to-br from-blue-50 to-white py-20">
+            <div className="container mx-auto px-6 text-center">
+                <h1 className="text-4xl md:text-6xl font-extrabold text-brand-dark mb-4">Protect what matters most</h1>
+                <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">Personalized insurance assistance for health, life, dental, and more.</p>
+                <button onClick={onQuoteClick} className="bg-brand-orange text-white px-8 py-3 rounded-full font-bold text-lg hover:bg-orange-600 transition-all transform hover:scale-105">Get a quote</button>
             </div>
-            <h3 className="text-xl font-bold text-brand-dark mb-2">{title[language]}</h3>
-            <p className="text-gray-600 leading-relaxed">{description[language]}</p>
-        </div>
+        </section>
     );
 };
 
-
+// Services grid
 const ServicesSection = ({ onServiceClick }: { onServiceClick: (id: string) => void }) => {
-  const { t } = useLanguage();
-  const { services } = useData();
-  return (
-    <section id="services" className="py-20 bg-brand-light">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-brand-dark">{t.services_title}</h2>
-          <p className="text-lg text-gray-600 mt-4 max-w-2xl mx-auto">{t.services_subtitle}</p>
-        </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                    {services.map((service) => (
-                        <div key={service.id}>
-                            <ServiceCard service={service} onClick={() => onServiceClick(service.id)} />
-                        </div>
-                    ))}
+    const { t, language } = useLanguage();
+    const { services } = useData();
+    return (
+        <section id="services" className="py-20 bg-white">
+            <div className="container mx-auto px-6">
+                <div className="text-center mb-12">
+                    <h2 className="text-4xl font-bold text-brand-dark">{t?.services_title || 'Our Services'}</h2>
+                    <p className="text-lg text-gray-600 mt-4 max-w-2xl mx-auto">{t?.services_subtitle || 'We help you choose the right coverage.'}</p>
                 </div>
-      </div>
-    </section>
-  );
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {services.map((s) => {
+                        const Icon = SERVICE_ICONS[s.icon];
+                        return (
+                            <button key={s.id} onClick={() => onServiceClick(s.id)} className="text-left bg-blue-50 hover:bg-blue-100 p-6 rounded-xl shadow transition-all">
+                                <div className="flex items-center mb-3">
+                                    <div className="h-10 w-10 flex items-center justify-center rounded-full bg-brand-blue text-white mr-3">
+                                        {Icon ? <Icon /> : null}
+                                    </div>
+                                    <h3 className="text-xl font-semibold text-brand-dark">{s.title[language]}</h3>
+                                </div>
+                                <p className="text-gray-600">{s.description[language]}</p>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        </section>
+    );
 };
 
+// Carriers marquee
 const CarriersSection = () => {
     const { t } = useLanguage();
     return (
-        <section id="carriers" className="py-20 bg-white">
-        <div className="container mx-auto px-6 text-center">
-            <h2 className="text-4xl font-bold text-brand-dark">{t.carriers_title}</h2>
-            <p className="text-lg text-gray-600 mt-4 max-w-2xl mx-auto">{t.carriers_subtitle}</p>
-            <div className="relative mt-12 h-24 overflow-hidden [mask-image:linear-gradient(to_right,transparent,white_10%,white_90%,transparent)]">
-            <div className="absolute left-0 flex w-max animate-scroll">
-                {[...CARRIERS, ...CARRIERS].map((carrier, index) => (
-                    <div key={index} className="flex-shrink-0 w-48 h-24 flex items-center justify-center p-4" title={carrier.name}>
-                    <img src={carrier.logoUrl} alt={carrier.name} className="max-h-12 max-w-full object-contain filter grayscale hover:grayscale-0 transition-all duration-300" />
+        <section className="py-16 bg-blue-50">
+            <div className="container mx-auto px-6 text-center">
+                <p className="text-lg text-gray-600 max-w-2xl mx-auto">{t?.carriers_subtitle}</p>
+                <div className="relative mt-12 h-24 overflow-hidden [mask-image:linear-gradient(to_right,transparent,white_10%,white_90%,transparent)]">
+                    <div className="absolute left-0 flex w-max animate-scroll">
+                        {[...CARRIERS, ...CARRIERS].map((carrier, index) => (
+                            <div key={index} className="flex-shrink-0 w-48 h-24 flex items-center justify-center p-4" title={carrier.name}>
+                                <img src={carrier.logoUrl} alt={carrier.name} className="max-h-12 max-w-full object-contain filter grayscale hover:grayscale-0 transition-all duration-300" />
+                            </div>
+                        ))}
                     </div>
-                ))}
+                </div>
             </div>
+        </section>
+    );
+};
+
+// Mobile menu
+const MobileMenu = ({ isOpen, onClose, onNavClick, onQuoteClick, onAppointmentClick }: { isOpen: boolean, onClose: () => void, onNavClick: (pageId: string, anchor?: string) => void, onQuoteClick: () => void, onAppointmentClick: () => void }) => {
+    const { language } = useLanguage();
+    const { services } = useData();
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose}>
+            <div className="absolute top-0 right-0 w-80 h-full bg-white shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center space-x-3">
+                        <Logo className="h-8 w-8" />
+                        <span className="font-bold">Menu</span>
+                    </div>
+                    <button onClick={onClose} aria-label="Close menu">✕</button>
+                </div>
+                <nav className="space-y-4">
+                    <a href="#" onClick={(e) => { e.preventDefault(); onNavClick('home'); onClose(); }} className="block text-gray-700">Home</a>
+                    <a href="#about" onClick={(e) => { e.preventDefault(); onNavClick('home', '#about'); onClose(); }} className="block text-gray-700">About</a>
+                    <a href="#agents" onClick={(e) => { e.preventDefault(); onNavClick('home', '#agents'); onClose(); }} className="block text-gray-700">Agents</a>
+                    <div>
+                        <div className="text-xs uppercase text-gray-400 mb-2">Services</div>
+                        <div className="grid grid-cols-1 gap-2">
+                            {services.map(s => (
+                                <a key={s.id} href={`#${s.id}`} onClick={(e) => { e.preventDefault(); onNavClick(s.id); onClose(); }} className="block text-gray-700">{s.title[language]}</a>
+                            ))}
+                        </div>
+                    </div>
+                    <button onClick={() => { onAppointmentClick(); onClose(); }} className="w-full text-left text-gray-700">Schedule appointment</button>
+                    <button onClick={() => { onQuoteClick(); onClose(); }} className="w-full text-left text-white bg-brand-orange px-4 py-2 rounded">Get a quote</button>
+                </nav>
             </div>
         </div>
-        </section>
     );
 };
 
@@ -235,7 +200,7 @@ const StarRating = ({ rating, className = "" }: { rating: number, className?: st
     return (
         <div className={`flex ${className}`}>
             {[...Array(5)].map((_, i) => (
-                <span key={i}><StarIcon filled={i < rating} /></span>
+                <StarIcon key={i} filled={i < rating} />
             ))}
         </div>
     );
@@ -287,7 +252,7 @@ const ReviewsSection = ({ onSeeAllClick }: { onSeeAllClick: () => void }) => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {visibleReviews.map((review, index) => (
-                        <div key={index}><ReviewCard review={review} /></div>
+                        <ReviewCard key={index} review={review} />
                     ))}
                 </div>
                 <div className="text-center mt-12">
@@ -326,7 +291,7 @@ const ReviewsPage = ({ onGoHome }: { onGoHome: () => void }) => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {REVIEWS.map((review, index) => (
-                        <div key={index}><ReviewCard review={review} /></div>
+                        <ReviewCard key={index} review={review} />
                     ))}
                 </div>
                  <div className="text-center mt-12">
@@ -411,7 +376,7 @@ const AgentsSection = ({ onAgentContact }: { onAgentContact: (agent: Agent) => v
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {agents.map((agent) => (
-                <div key={agent.npn}><AgentCard agent={agent} onContact={onAgentContact} /></div>
+                <AgentCard key={agent.npn} agent={agent} onContact={onAgentContact} />
             ))}
             </div>
         </div>
@@ -551,7 +516,7 @@ const ServicePage = ({ service, onGoHome }: { service: ServiceItem, onGoHome: ()
                         <h2 className="text-3xl font-bold text-center text-brand-dark mb-12">{t.service_page_what_we_offer}</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {service.keyFeatures.map((feature, index) => (
-                                <div key={index}><KeyFeatureDisplay feature={feature} /></div>
+                                <KeyFeatureDisplay key={index} feature={feature} />
                             ))}
                         </div>
                     </section>
@@ -701,21 +666,8 @@ export default function App() {
   
     const handleNavClick = (pageId: string, anchor?: string) => {
         if (pageId === 'login') {
-            // Sincroniza hash para que abrir en nueva pestaña funcione
-            if (window?.location) window.location.hash = '#login';
             setRoute({ view: 'login', page: 'login' });
             return;
-        }
-
-        // Actualiza hash cuando cambiamos de página pública
-        if (pageId === 'home') {
-            if (anchor) {
-                if (window?.location) window.location.hash = anchor; // e.g. #services
-            } else {
-                if (window?.location) window.location.hash = '#home';
-            }
-        } else {
-            if (window?.location) window.location.hash = `#${pageId}`;
         }
 
         setRoute({ view: 'public', page: pageId });
@@ -728,48 +680,6 @@ export default function App() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
-
-    // Lee el hash al cargar y en cambios de hash para soportar abrir enlaces en nueva pestaña (#reviews, #<serviceId>, etc.)
-    useEffect(() => {
-        const applyHashRoute = () => {
-            const raw = (window?.location?.hash || '').replace(/^#/, '');
-            const h = decodeURIComponent(raw || '').trim();
-            if (!h) return; // deja el estado por defecto
-
-            // Login directo
-            if (h.toLowerCase() === 'login') {
-                setRoute({ view: 'login', page: 'login' });
-                return;
-            }
-            // Páginas públicas conocidas
-            const knownPages = new Set(['home', 'reviews', 'application']);
-            if (knownPages.has(h)) {
-                setRoute({ view: 'public', page: h });
-                return;
-            }
-            // Sección dentro de home (anclas)
-            if (['services', 'about', 'agents', 'carriers', 'reviews'].includes(h)) {
-                setRoute({ view: 'public', page: 'home' });
-                // desplaza suavemente a la sección
-                setTimeout(() => {
-                    document.querySelector(`#${h}`)?.scrollIntoView({ behavior: 'smooth' });
-                }, 50);
-                return;
-            }
-            // Si coincide con un ID de servicio, abre la página de ese servicio
-            const svc = services.find(s => s.id === h);
-            if (svc) {
-                setRoute({ view: 'public', page: h });
-                return;
-            }
-            // Fallback
-            setRoute({ view: 'public', page: 'home' });
-        };
-
-        applyHashRoute();
-        window.addEventListener('hashchange', applyHashRoute);
-        return () => window.removeEventListener('hashchange', applyHashRoute);
-    }, [services]);
     
     const renderAdminContent = () => {
         switch (route.page) {
@@ -791,7 +701,7 @@ export default function App() {
         if (route.page === 'reviews') {
             return <ReviewsPage onGoHome={() => setRoute({ view: 'public', page: 'home' })} />;
         }
-    //
+    // Plans view removed
         const currentService = services.find(s => s.id === route.page);
         if (currentService) {
             return <ServicePage service={currentService} onGoHome={() => setRoute({ view: 'public', page: 'home' })} />;
@@ -826,7 +736,6 @@ export default function App() {
                 {renderPublicContent()}
             </main>
             <Footer />
-
             <ContactModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
             <AppointmentModal isOpen={isAppointmentModalOpen} onClose={() => setIsAppointmentModalOpen(false)} />
             {selectedAgent && (

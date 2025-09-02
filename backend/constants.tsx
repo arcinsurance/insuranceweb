@@ -381,8 +381,8 @@ const generateReviews = (): Review[] => {
             es: "Está claro que {agentFirstName} realmente se preocupa por sus clientes. No solo intentaban venderme algo; estaban enfocados en encontrar la solución adecuada para mi situación."
         },
         {
-            en: "I recently changed jobs and lost my employer's coverage. {agentFirstName} helped me navigate the marketplace and get insured quickly so there was no gap in my coverage. So helpful!",
-            es: "Recientemente cambié de trabajo y perdí la cobertura de mi empleador. {agentFirstName} me ayudó a navegar por el mercado y a asegurarme rápidamente para que no hubiera una interrupción en mi cobertura. ¡Muy útil!"
+            en: "I recently changed jobs and lost my employer's coverage. {agentFirstName} helped me compare options and get insured quickly so there was no gap in my coverage. So helpful!",
+            es: "Recientemente cambié de trabajo y perdí la cobertura de mi empleador. {agentFirstName} me ayudó a comparar opciones y a asegurarme rápidamente para que no hubiera una interrupción en mi cobertura. ¡Muy útil!"
         },
         {
             en: "Professional, knowledgeable, and incredibly friendly. {agentFirstName} made what I thought would be a stressful process easy and straightforward. I highly recommend their services.",
