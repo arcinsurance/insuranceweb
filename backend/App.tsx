@@ -826,7 +826,7 @@ export default function App() {
                 {renderPublicContent()}
             </main>
             <Footer />
-            <AIAssistant />
+
             <ContactModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
             <AppointmentModal isOpen={isAppointmentModalOpen} onClose={() => setIsAppointmentModalOpen(false)} />
             {selectedAgent && (
