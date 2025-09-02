@@ -25,10 +25,6 @@ export interface ServiceItem {
   howItWorks: LocalizedString[];
 }
 
-export interface ChatMessage {
-  role: 'user' | 'model';
-  text: string;
-}
 
 export interface Agent {
   name: string;
@@ -50,30 +46,13 @@ export interface Review {
 }
 
 export interface AgentApplicationData {
-  id?: string;
-  // Personal Information
   firstName: string;
   lastName: string;
-  dateOfBirth: string;
   email: string;
   phone: string;
-  // Address
-  address1: string;
-  address2: string;
-  city: string;
-  state: string;
-  zip: string;
-  // Professional Profile
-  isLicensed: string;
+  isLicensed: 'yes' | 'no';
   npn?: string;
   licenseNumber?: string;
-  licenseStatus?: string;
-  licenseState?: string;
-  licenseExpiration?: string;
-  // Submission
-  availabilityDate: string;
-  howDidYouHear: string;
-  referredBy?: string;
   preferredLanguage: string;
   certifyInfo: boolean;
   consentContact: boolean;

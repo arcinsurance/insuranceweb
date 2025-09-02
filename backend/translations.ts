@@ -129,9 +129,7 @@ export const translations = {
     admin_dashboard_appointments: "Appointments",
     admin_appointments_title: "Appointment Requests",
     admin_appointments_subtitle: "These are the appointment requests submitted through the website.",
-  // Plans (Marketplace)
-  nav_view_plans: "View plans in your area",
-    // Marketplace removed
+  // Marketplace removed
   },
   es: {
     // Header & Footer
@@ -263,8 +261,6 @@ export const translations = {
     admin_dashboard_appointments: "Citas",
     admin_appointments_title: "Solicitudes de Cita",
     admin_appointments_subtitle: "Estas son las solicitudes de cita enviadas a través del sitio web.",
-  // Plans (Marketplace)
-  nav_view_plans: "Ver planes en tu área",
-    // Marketplace eliminado
+  // Marketplace eliminado
   }
 };
