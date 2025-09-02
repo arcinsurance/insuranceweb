@@ -14,6 +14,7 @@ try {
 // Simple Express server to expose the /api/send-lead-email endpoint
 const express = require('express');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 const path = require('path');
 let sendLeadEmail;
 let sendAppointmentEmail;
@@ -27,18 +28,38 @@ try {
 } catch (e) {
 	console.error('No se pudo cargar ./api/send-appointment-email.js:', e);
 }
-// Marketplace and plan search removed per product decision
+//
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
+// CORS for cross-origin frontend (e.g., Render static site calling API)
+const allowedOrigins = (process.env.CORS_ORIGINS || '*')
+	.split(',')
+	.map(s => s.trim())
+	.filter(Boolean);
+const corsOptions = {
+	origin: allowedOrigins.includes('*') ? true : allowedOrigins,
+	methods: ['GET', 'POST', 'OPTIONS'],
+	allowedHeaders: ['Content-Type', 'Authorization'],
+	optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
+// Ensure preflight requests are handled
+app.options('*', cors(corsOptions));
 
 // Simple health check
 app.get('/api/health', (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
 // Email diagnostics
-app.get('/api/email/_debug', (req, res) => {
+app.get('/api/email/_debug', async (req, res) => {
+	const reqOrigin = req.headers.origin || null;
+	const corsInfo = {
+		requestedOrigin: reqOrigin,
+		allowedOrigins,
+		effectivePolicy: allowedOrigins.includes('*') ? 'any' : 'list',
+	};
 	const smtp = {
 		host: !!process.env.SMTP_HOST,
 		port: !!process.env.SMTP_PORT,
@@ -56,10 +77,39 @@ app.get('/api/email/_debug', (req, res) => {
 		lead: !!(sendLeadEmail && sendLeadEmail.default),
 		appointment: !!(sendAppointmentEmail && sendAppointmentEmail.default)
 	};
-	res.json({ ok: hasCentral && (hasSMTP || hasGmail), cfg: { smtp, gmail, hasCentral, handlers } });
+
+	// Try building a transporter and verifying auth without sending mail
+	let verify = { tried: false, ok: false, error: null, mode: hasSMTP ? 'smtp' : (hasGmail ? 'gmail' : 'none') };
+	if (hasCentral && (hasSMTP || hasGmail)) {
+		try {
+			const nodemailer = require('nodemailer');
+			let transporter;
+			if (hasSMTP) {
+				transporter = nodemailer.createTransport({
+					host: process.env.SMTP_HOST,
+					port: parseInt(process.env.SMTP_PORT, 10),
+					secure: String(process.env.SMTP_PORT) === '465',
+					auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+				});
+			} else {
+				transporter = nodemailer.createTransport({
+					service: 'gmail',
+					auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+				});
+			}
+			verify.tried = true;
+			await transporter.verify();
+			verify.ok = true;
+		} catch (e) {
+			verify.ok = false;
+			verify.error = e && (e.message || String(e));
+		}
+	}
+
+	res.json({ ok: hasCentral && (hasSMTP || hasGmail), cfg: { smtp, gmail, hasCentral, handlers, cors: corsInfo }, verify });
 });
 
-// Marketplace diagnostics removed
+//
 
 // Adapt the serverless handler to Express
 if (sendLeadEmail && sendLeadEmail.default) {
@@ -75,7 +125,7 @@ if (sendAppointmentEmail && sendAppointmentEmail.default) {
 	});
 }
 
-// Marketplace/Geo routes removed
+//
 
 // Serve static files from the dist directory (Vite build output)
 app.use(express.static(path.join(__dirname, 'dist')));
