@@ -10,23 +10,11 @@ interface AgentApplicationFormProps {
 const initialFormData: AgentApplicationData = {
     firstName: '',
     lastName: '',
-    dateOfBirth: '',
     email: '',
     phone: '',
-    address1: '',
-    address2: '',
-    city: '',
-    state: '',
-    zip: '',
-    isLicensed: '',
+    isLicensed: 'no',
     npn: '',
     licenseNumber: '',
-    licenseStatus: '',
-    licenseState: '',
-    licenseExpiration: '',
-    availabilityDate: '',
-    howDidYouHear: '',
-    referredBy: '',
     preferredLanguage: '',
     certifyInfo: false,
     consentContact: false,
@@ -113,18 +101,15 @@ const AgentApplicationForm = ({ onGoHome }: AgentApplicationFormProps) => {
 
         switch (stepNum) {
             case 1:
-                requiredFields = ['firstName', 'lastName', 'dateOfBirth', 'email', 'phone'];
+                requiredFields = ['firstName', 'lastName', 'email', 'phone'];
                 break;
             case 2:
-                requiredFields = ['address1', 'city', 'state', 'zip'];
-                break;
-            case 3:
                 requiredFields = ['isLicensed'];
                 if (formData.isLicensed === 'yes') {
-                    requiredFields.push('npn', 'licenseNumber', 'licenseStatus', 'licenseState', 'licenseExpiration');
+                    requiredFields.push('npn', 'licenseNumber');
                 }
                 break;
-            case 4:
+            case 3:
                 requiredFields = ['preferredLanguage', 'certifyInfo', 'consentContact'];
                 break;
         }
@@ -176,101 +161,56 @@ const AgentApplicationForm = ({ onGoHome }: AgentApplicationFormProps) => {
 
     return (
         <div className="bg-gray-50 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-8">
+            <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-xl p-8">
                 <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">{t.app_form_title}</h2>
-
-                {/* Progress Bar */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-                   <FormStep currentStep={step} stepNumber={1} title={t.app_step1} isCompleted={completedSteps.includes(1)} />
-                   <FormStep currentStep={step} stepNumber={2} title={t.app_step2} isCompleted={completedSteps.includes(2)} />
-                   <FormStep currentStep={step} stepNumber={3} title={t.app_step3} isCompleted={completedSteps.includes(3)} />
-                   <FormStep currentStep={step} stepNumber={4} title={t.app_step4} isCompleted={completedSteps.includes(4)} />
-                </div>
-                
                 <form onSubmit={handleSubmit} noValidate>
                     {/* Step 1: Personal Information */}
                     {step === 1 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                            <FormInput label={t.app_first_name} name="firstName" value={formData.firstName} onChange={handleChange} required error={errors.firstName} />
                            <FormInput label={t.app_last_name} name="lastName" value={formData.lastName} onChange={handleChange} required error={errors.lastName} />
-                           <FormInput label={t.app_dob} name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} required type="date" error={errors.dateOfBirth} />
-                           <div/>
                            <FormInput label={t.app_email} name="email" value={formData.email} onChange={handleChange} required type="email" error={errors.email} />
                            <FormInput label={t.app_phone} name="phone" value={formData.phone} onChange={handleChange} required type="tel" error={errors.phone} />
                         </div>
                     )}
 
-                    {/* Step 2: Address */}
+                    {/* Step 2: Professional Profile */}
                     {step === 2 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                           <div className="md:col-span-2">
-                            <FormInput label={t.app_address1} name="address1" value={formData.address1} onChange={handleChange} required error={errors.address1} />
-                           </div>
-                           <div className="md:col-span-2">
-                             <FormInput label={t.app_address2} name="address2" value={formData.address2} onChange={handleChange} />
-                           </div>
-                           <FormInput label={t.app_city} name="city" value={formData.city} onChange={handleChange} required error={errors.city} />
-                           <FormInput label={t.app_state} name="state" value={formData.state} onChange={handleChange} required error={errors.state} />
-                           <FormInput label={t.app_zip} name="zip" value={formData.zip} onChange={handleChange} required error={errors.zip} />
-                        </div>
-                    )}
-                    
-                    {/* Step 3: Professional Profile */}
-                    {step === 3 && (
                         <div className="space-y-6">
                             <FormInput label={t.app_is_licensed} name="isLicensed" value={formData.isLicensed} onChange={handleChange} required error={errors.isLicensed}>
                                 <select id="app-form-isLicensed" name="isLicensed" value={formData.isLicensed} onChange={handleChange} required className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 bg-white">
-                                    <option value="" disabled>{t.app_select}</option>
-                                    <option value="yes">{t.app_is_licensed_yes}</option>
                                     <option value="no">{t.app_is_licensed_no}</option>
+                                    <option value="yes">{t.app_is_licensed_yes}</option>
                                 </select>
                             </FormInput>
 
                             {formData.isLicensed === 'yes' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-                                    <FormInput label={t.app_npn} name="npn" value={formData.npn} onChange={handleChange} required={formData.isLicensed === 'yes'} error={errors.npn} />
-                                    <FormInput label={t.app_license_number} name="licenseNumber" value={formData.licenseNumber} onChange={handleChange} required={formData.isLicensed === 'yes'} error={errors.licenseNumber} />
-                                    <FormInput label={t.app_license_status} name="licenseStatus" value={formData.licenseStatus} onChange={handleChange} required={formData.isLicensed === 'yes'} error={errors.licenseStatus}>
-                                         <select name="licenseStatus" value={formData.licenseStatus} onChange={handleChange} required className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 bg-white">
-                                            <option value="">{t.app_select}</option>
-                                            <option>Active</option>
-                                            <option>Inactive</option>
-                                            <option>Expired</option>
-                                         </select>
-                                    </FormInput>
-                                    <FormInput label={t.app_license_province} name="licenseState" value={formData.licenseState} onChange={handleChange} required={formData.isLicensed === 'yes'} error={errors.licenseState} />
-                                    <FormInput label={t.app_license_expiration} name="licenseExpiration" value={formData.licenseExpiration} onChange={handleChange} required={formData.isLicensed === 'yes'} type="date" error={errors.licenseExpiration} />
+                                    <FormInput label={t.app_npn} name="npn" value={formData.npn} onChange={handleChange} required error={errors.npn} />
+                                    <FormInput label={t.app_license_number} name="licenseNumber" value={formData.licenseNumber} onChange={handleChange} required error={errors.licenseNumber} />
+                                </div>
+                            )}
+                            {formData.isLicensed === 'no' && (
+                                <div className="pt-4 border-t">
+                                    <p className="text-brand-blue font-semibold mb-2">{t.app_no_license_invite || '¿No tienes licencia? Te invitamos a obtenerla con nuestro código de descuento:'}</p>
+                                    <a href="https://partners.xcelsolutions.com/ims99" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-bold">https://partners.xcelsolutions.com/ims99</a>
                                 </div>
                             )}
                         </div>
                     )}
-                    
-                    {/* Step 4: Submit Application */}
-                    {step === 4 && (
+
+                    {/* Step 3: Submit Application */}
+                    {step === 3 && (
                         <div className="space-y-6">
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormInput label={t.app_availability} name="availabilityDate" value={formData.availabilityDate} onChange={handleChange} type="date" />
-                                <FormInput label={t.app_how_hear} name="howDidYouHear" value={formData.howDidYouHear} onChange={handleChange}>
-                                     <select name="howDidYouHear" value={formData.howDidYouHear} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
-                                        <option value="">{t.app_select}</option>
-                                        <option>LinkedIn</option>
-                                        <option>Indeed</option>
-                                        <option>Referral</option>
-                                        <option>Website</option>
-                                        <option>Other</option>
-                                     </select>
-                                </FormInput>
-                                <FormInput label={t.app_referred_by} name="referredBy" value={formData.referredBy} onChange={handleChange} />
-                                <FormInput label={t.app_pref_lang} name="preferredLanguage" value={formData.preferredLanguage} onChange={handleChange} required error={errors.preferredLanguage}>
-                                     <select name="preferredLanguage" value={formData.preferredLanguage} onChange={handleChange} required className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
-                                        <option value="">{t.app_select}</option>
-                                        <option value="English">English</option>
-                                        <option value="Spanish">Español</option>
-                                        <option value="Bilingual">Bilingual</option>
-                                     </select>
-                                </FormInput>
-                           </div>
-                           <div className="space-y-4 pt-4 border-t">
+                            <FormInput label={t.app_pref_lang} name="preferredLanguage" value={formData.preferredLanguage} onChange={handleChange} required error={errors.preferredLanguage}>
+                                 <select name="preferredLanguage" value={formData.preferredLanguage} onChange={handleChange} required className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
+                                    <option value="">{t.app_select}</option>
+                                    <option value="English">English</option>
+                                    <option value="Spanish">Español</option>
+                                    <option value="Bilingual">Bilingual</option>
+                                 </select>
+                            </FormInput>
+                            <div className="space-y-4 pt-4 border-t">
                                <div className="flex items-start">
                                    <input id="certifyInfo" name="certifyInfo" type="checkbox" checked={formData.certifyInfo} onChange={handleChange} className={`h-4 w-4 text-brand-blue focus:ring-brand-blue border-gray-300 rounded mt-1 ${errors.certifyInfo ? 'ring-2 ring-red-500' : ''}`} />
                                    <label htmlFor="certifyInfo" className="ml-3 block text-sm text-gray-700">{t.app_certify}</label>
@@ -279,26 +219,25 @@ const AgentApplicationForm = ({ onGoHome }: AgentApplicationFormProps) => {
                                    <input id="consentContact" name="consentContact" type="checkbox" checked={formData.consentContact} onChange={handleChange} className={`h-4 w-4 text-brand-blue focus:ring-brand-blue border-gray-300 rounded mt-1 ${errors.consentContact ? 'ring-2 ring-red-500' : ''}`} />
                                    <label htmlFor="consentContact" className="ml-3 block text-sm text-gray-700">{t.app_consent}</label>
                                </div>
-                           </div>
+                            </div>
                         </div>
                     )}
-                    
+
                     {/* Navigation Buttons */}
                     <div className="mt-12 flex justify-between items-center">
                         <button type="button" onClick={onGoHome} className="text-sm font-medium text-gray-600 hover:text-gray-900">{t.back_to_home}</button>
-                        
                         <div className="flex items-center space-x-4">
                             {step > 1 && (
                                 <button type="button" onClick={prevStep} className="px-6 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                                     {t.app_back}
                                 </button>
                             )}
-                            {step < 4 && (
+                            {step < 3 && (
                                 <button type="button" onClick={nextStep} className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                                     {t.app_next}
                                 </button>
                             )}
-                            {step === 4 && (
+                            {step === 3 && (
                                 <button type="submit" className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
                                     {t.app_submit}
                                 </button>
