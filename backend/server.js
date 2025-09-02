@@ -37,7 +37,15 @@ app.use(bodyParser.json());
 // CORS for cross-origin frontend (e.g., Render static site calling API)
 const allowedOrigins = (process.env.CORS_ORIGINS || '*')
 	.split(',')
+const corsOptions = {
+	origin: allowedOrigins.includes('*') ? true : allowedOrigins,
+	methods: ['GET', 'POST', 'OPTIONS'],
+	allowedHeaders: ['Content-Type', 'Authorization'],
+	optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
 	.map(s => s.trim())
+app.options('*', cors(corsOptions));
 	.filter(Boolean);
 const corsOptions = {
 	origin: allowedOrigins.includes('*') ? true : allowedOrigins,
